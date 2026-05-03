@@ -69,6 +69,8 @@ state:
 
 Capability declarations may be stored in adapter-specific locations, but they should be exportable as plain text.
 
+SSD-Core includes a baseline manifest at `.sdd/adapters/generic-markdown.json`.
+
 ## 4. Path Translation
 
 SDD-Core examples use logical repository paths such as `.sdd/changes/add-dark-mode/tasks.md`.

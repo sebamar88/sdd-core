@@ -28,8 +28,10 @@ SSD-Core fixes the workflow layer. It makes the repository carry the intent, evi
 
 ```text
 .sdd/
+  adapters/
   agents/
   constitution.md
+  examples/
   protocol.md
   profiles/
   schemas/
@@ -41,6 +43,7 @@ SSD-Core fixes the workflow layer. It makes the repository carry the intent, evi
 docs/
   sdd-core-protocol-v0.1.md
   adapter-contract-v0.1.md
+  adapter-authoring-v0.1.md
   sdd-validator-v0.1.md
 
 scripts/
@@ -51,6 +54,7 @@ The current reference utility supports:
 
 ```text
 python scripts/sdd.py validate
+python scripts/sdd.py init --root <path>
 python scripts/sdd.py status
 python scripts/sdd.py new <change-id> --profile <profile> --title "Human intent"
 python scripts/sdd.py check <change-id>
@@ -88,6 +92,12 @@ Not every change needs enterprise ceremony. SSD-Core ships profiles for:
 A checked task is not proof. Verification artifacts must record what was checked, how it was checked, the outcome, and known gaps.
 
 ## Quick Start
+
+Initialize SSD-Core in another repository:
+
+```text
+python scripts/sdd.py init --root path-to-repository
+```
 
 Validate the SDD foundation:
 
@@ -159,16 +169,18 @@ Solid:
 - agnostic skill catalog
 - profile set
 - agent and skill schemas
+- generic markdown adapter manifest
+- end-to-end standard-profile example
+- end-to-end lifecycle test
 - adapter contract
 - portable reference CLI
-- validation/status/new/check/archive commands
+- init/validate/status/new/check/sync-specs/archive commands
 - conservative living spec sync
 
 Still early:
 
 - full JSON Schema validation
 - semantic living spec merge
-- successful archive fixture for a verified real change
 - packaged CLI
 - concrete adapters
 - richer templates per profile
@@ -191,6 +203,14 @@ Agents live under `.sdd/agents/`. They define portable role contracts for orches
 Skills live under `.sdd/skills/`. They define portable workflow capabilities for proposing, specifying, designing, tasking, implementing, verifying, critiquing, syncing specs, and archiving.
 
 Adapters can turn these Markdown contracts into prompts, commands, menus, subagents, jobs, or scripts. The protocol does not require any specific agent platform.
+
+## Reference Adapter
+
+SSD-Core ships a generic Markdown adapter manifest at `.sdd/adapters/generic-markdown.json`.
+
+This adapter requires no specific agent runtime. It defines the baseline contract for any tool or human workflow that can read and write repository artifacts.
+
+See [docs/adapter-authoring-v0.1.md](docs/adapter-authoring-v0.1.md) to build a concrete adapter.
 
 ## Influences And Attribution
 

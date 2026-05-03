@@ -23,6 +23,12 @@ Validate the current repository:
 python scripts/sdd.py validate
 ```
 
+Initialize SSD-Core in a repository:
+
+```text
+python scripts/sdd.py init --root path-to-repository
+```
+
 Validate another repository root:
 
 ```text
@@ -70,6 +76,7 @@ python scripts/sdd.py new fix-login --profile bugfix --root path-to-repository
 The validator checks:
 
 - required `.sdd/` directories
+- required adapter manifests
 - required agent files
 - required protocol and constitution files
 - required profile files

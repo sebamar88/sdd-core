@@ -1,0 +1,32 @@
+{
+  "schema": "sdd.adapter-capabilities.v1",
+  "adapter": "generic-markdown",
+  "version": "0.1.0",
+  "description": "Portable file-based adapter contract for any agent or human workflow that can read and write Markdown artifacts.",
+  "host": {
+    "agent_runtime": "none-required",
+    "operating_system": "any",
+    "path_translation": true,
+    "process_execution": "external-or-manual"
+  },
+  "profiles": {
+    "supported": ["quick", "standard", "bugfix", "refactor", "enterprise", "research"]
+  },
+  "agents": {
+    "supported": ["orchestrator", "explorer", "specifier", "architect", "planner", "implementer", "verifier", "critic", "archivist"],
+    "mapping": "markdown-role-contract"
+  },
+  "skills": {
+    "supported": ["propose", "specify", "design", "task", "implement", "verify", "critique", "sync-specs", "archive"],
+    "mapping": "markdown-skill-contract"
+  },
+  "verification": {
+    "command_execution": "optional",
+    "manual_evidence": true,
+    "screenshot_evidence": "optional"
+  },
+  "state": {
+    "source_of_truth": "repository-artifacts",
+    "resume_active_change": true
+  }
+}

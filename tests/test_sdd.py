@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import contextlib
+import io
 import sys
+import uuid
 import unittest
 from pathlib import Path
 
@@ -23,6 +26,10 @@ class SddToolingTests(unittest.TestCase):
         self.assertIn("verifier", sdd.REQUIRED_AGENTS)
         self.assertIn("propose", sdd.REQUIRED_SKILLS)
         self.assertIn("archive", sdd.REQUIRED_SKILLS)
+
+    def test_adapter_manifest_is_required(self) -> None:
+        self.assertIn("generic-markdown.json", sdd.REQUIRED_ADAPTERS)
+        self.assertIn("adapter-capabilities.schema.json", sdd.REQUIRED_SCHEMAS)
 
     def test_artifact_body_includes_change_metadata(self) -> None:
         body = sdd.artifact_body(
@@ -62,6 +69,17 @@ class SddToolingTests(unittest.TestCase):
         self.assertEqual(findings, [])
         self.assertEqual(changes, [])
 
+    def test_init_project_creates_valid_foundation_in_new_root(self) -> None:
+        root = REPO_ROOT / ".tmp-tests" / "init-fixture"
+
+        with contextlib.redirect_stdout(io.StringIO()):
+            findings = sdd.init_project(root)
+
+        self.assertEqual(findings, [])
+        self.assertTrue((root / ".sdd" / "constitution.md").is_file())
+        self.assertTrue((root / ".sdd" / "adapters" / "generic-markdown.json").is_file())
+        self.assertEqual(sdd.validate(root), [])
+
     def test_check_change_rejects_missing_change(self) -> None:
         findings = sdd.check_change(REPO_ROOT, "missing-change")
 
@@ -87,6 +105,40 @@ class SddToolingTests(unittest.TestCase):
         text = "---\nschema: sdd.artifact.v1\n---\n\n# Body\n"
 
         self.assertEqual(sdd.strip_frontmatter_text(text), "# Body\n")
+
+    def test_end_to_end_standard_change_syncs_and_archives(self) -> None:
+        root = REPO_ROOT / ".tmp-tests" / f"e2e-{uuid.uuid4().hex}"
+        change_id = "document-example"
+
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(sdd.init_project(root), [])
+            self.assertEqual(sdd.create_change(root, change_id, "standard", "Document example"), [])
+
+        change_dir = root / ".sdd" / "changes" / change_id
+        for filename in ["proposal.md", "delta-spec.md", "design.md", "tasks.md", "archive.md"]:
+            path = change_dir / filename
+            path.write_text(path.read_text(encoding="utf-8").replace("status: draft", "status: ready"), encoding="utf-8")
+
+        tasks_path = change_dir / "tasks.md"
+        tasks_path.write_text(tasks_path.read_text(encoding="utf-8").replace("- [ ]", "- [x]"), encoding="utf-8")
+
+        verification_path = change_dir / "verification.md"
+        verification_text = verification_path.read_text(encoding="utf-8")
+        verification_text = verification_text.replace("status: draft", "status: verified")
+        verification_text = verification_text.replace("pending verification evidence", "unit test evidence")
+        verification_text = verification_text.replace("not-run", "pass")
+        verification_path.write_text(verification_text, encoding="utf-8")
+
+        self.assertEqual(sdd.check_change(root, change_id), [])
+
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(sdd.sync_specs(root, change_id), [])
+            self.assertEqual(sdd.archive_change(root, change_id), [])
+
+        self.assertFalse(change_dir.exists())
+        self.assertTrue((root / ".sdd" / "specs" / change_id / "spec.md").is_file())
+        archives = list((root / ".sdd" / "archive").glob(f"*-{change_id}"))
+        self.assertEqual(len(archives), 1)
 
 
 if __name__ == "__main__":

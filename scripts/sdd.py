@@ -13,6 +13,7 @@ from typing import Iterable
 
 REQUIRED_DIRECTORIES = [
     ".sdd",
+    ".sdd/adapters",
     ".sdd/agents",
     ".sdd/profiles",
     ".sdd/schemas",
@@ -20,6 +21,10 @@ REQUIRED_DIRECTORIES = [
     ".sdd/specs",
     ".sdd/changes",
     ".sdd/archive",
+]
+
+REQUIRED_ADAPTERS = [
+    "generic-markdown.json",
 ]
 
 REQUIRED_AGENTS = [
@@ -45,6 +50,7 @@ REQUIRED_PROFILES = [
 
 REQUIRED_SCHEMAS = [
     "agent.schema.json",
+    "adapter-capabilities.schema.json",
     "artifact.schema.json",
     "phase-result.schema.json",
     "skill.schema.json",
@@ -79,6 +85,32 @@ PROFILE_ARTIFACTS = {
     ],
     "research": ["proposal.md", "findings.md", "decision.md"],
 }
+
+FOUNDATION_COPY_DIRECTORIES = [
+    "adapters",
+    "agents",
+    "profiles",
+    "schemas",
+    "skills",
+]
+
+FOUNDATION_COPY_FILES = [
+    "constitution.md",
+    "protocol.md",
+]
+
+FOUNDATION_DOC_FILES = [
+    "adapter-contract-v0.1.md",
+    "adapter-authoring-v0.1.md",
+    "sdd-core-protocol-v0.1.md",
+    "sdd-validator-v0.1.md",
+]
+
+EMPTY_STATE_DIRECTORIES = [
+    "archive",
+    "changes",
+    "specs",
+]
 
 ARTIFACT_STATUSES = {
     "draft",
@@ -126,6 +158,10 @@ class ChangeSummary:
 
 def logical_path(root: Path, value: str) -> Path:
     return root.joinpath(*value.split("/"))
+
+
+def template_sdd_root() -> Path:
+    return Path(__file__).resolve().parents[1] / ".sdd"
 
 
 def artifact_name(filename: str) -> str:
@@ -313,6 +349,11 @@ def validate_required_files(root: Path) -> list[Finding]:
         if not path.is_file():
             findings.append(Finding("error", path, "required file is missing"))
 
+    for adapter in REQUIRED_ADAPTERS:
+        path = logical_path(root, f".sdd/adapters/{adapter}")
+        if not path.is_file():
+            findings.append(Finding("error", path, "required adapter manifest is missing"))
+
     for agent in REQUIRED_AGENTS:
         path = logical_path(root, f".sdd/agents/{agent}.md")
         if not path.is_file():
@@ -423,6 +464,58 @@ def validate(root: Path) -> list[Finding]:
     for check in checks:
         findings.extend(check(root))
     return findings
+
+
+def init_project(root: Path) -> list[Finding]:
+    source = template_sdd_root()
+    if not source.is_dir():
+        return [Finding("error", source, "template .sdd directory is missing")]
+
+    root.mkdir(parents=True, exist_ok=True)
+    target = root / ".sdd"
+    target.mkdir(exist_ok=True)
+
+    for directory in FOUNDATION_COPY_DIRECTORIES:
+        source_dir = source / directory
+        target_dir = target / directory
+        if not source_dir.is_dir():
+            return [Finding("error", source_dir, "template directory is missing")]
+        target_dir.mkdir(exist_ok=True)
+        for source_path in sorted(source_dir.iterdir()):
+            if not source_path.is_file():
+                continue
+            destination = target_dir / source_path.name
+            if not destination.exists():
+                shutil.copy2(source_path, destination)
+
+    for filename in FOUNDATION_COPY_FILES:
+        source_file = source / filename
+        destination = target / filename
+        if not source_file.is_file():
+            return [Finding("error", source_file, "template file is missing")]
+        if not destination.exists():
+            shutil.copy2(source_file, destination)
+
+    source_docs = source.parent / "docs"
+    target_docs = root / "docs"
+    target_docs.mkdir(exist_ok=True)
+    for filename in FOUNDATION_DOC_FILES:
+        source_file = source_docs / filename
+        destination = target_docs / filename
+        if not source_file.is_file():
+            return [Finding("error", source_file, "template doc is missing")]
+        if not destination.exists():
+            shutil.copy2(source_file, destination)
+
+    for directory in EMPTY_STATE_DIRECTORIES:
+        state_dir = target / directory
+        state_dir.mkdir(exist_ok=True)
+        keep = state_dir / ".gitkeep"
+        if not keep.exists():
+            keep.write_text("\n", encoding="utf-8")
+
+    print(f"Initialized SDD-Core at: {target.as_posix()}")
+    return []
 
 
 def detect_change_profile(change_dir: Path) -> str:
@@ -722,6 +815,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="repository root to validate; defaults to the current directory",
     )
 
+    init_parser = subcommands.add_parser("init", help="initialize SDD-Core artifacts in a repository")
+    init_parser.add_argument(
+        "--root",
+        default=".",
+        help="repository root; defaults to the current directory",
+    )
+
     status_parser = subcommands.add_parser("status", help="show SDD-Core repository status")
     status_parser.add_argument(
         "--root",
@@ -780,6 +880,13 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "validate":
         root = Path(args.root).resolve()
+        return print_findings(root, validate(root))
+
+    if args.command == "init":
+        root = Path(args.root).resolve()
+        findings = init_project(root)
+        if findings:
+            return print_findings(root, findings)
         return print_findings(root, validate(root))
 
     if args.command == "status":

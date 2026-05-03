@@ -71,6 +71,8 @@ An initialized project SHOULD use this layout:
 
 ```text
 .sdd/
+  adapters/
+    generic-markdown.json
   agents/
     orchestrator.md
     explorer.md
@@ -120,6 +122,8 @@ An initialized project SHOULD use this layout:
       archive.md
   archive/
     <date>-<change-id>/
+  examples/
+    standard-verified-change/
 ```
 
 Required directories:
@@ -130,7 +134,9 @@ Required directories:
 
 Recommended directories:
 
+- `.sdd/adapters/`
 - `.sdd/agents/`
+- `.sdd/examples/`
 - `.sdd/profiles/`
 - `.sdd/schemas/`
 - `.sdd/skills/`
@@ -199,6 +205,10 @@ An agent is a portable role contract under `.sdd/agents/`. It defines responsibi
 ### Skill
 
 A skill is a portable workflow capability under `.sdd/skills/`. It defines a phase action such as proposing, specifying, verifying, syncing specs, or archiving. Adapters may expose skills through their native command or workflow mechanisms.
+
+### Adapter Manifest
+
+An adapter manifest is a machine-readable capability declaration under `.sdd/adapters/`. It tells humans and tooling which profiles, agents, skills, verification mechanisms, and state recovery behaviors an adapter supports.
 
 ## 8. Required Artifact Metadata
 
