@@ -11,7 +11,7 @@ scope: protocol
 
 ## 1. Purpose
 
-SDD-Core is an agent-agnostic protocol for spec-driven development. It defines the minimum artifacts, lifecycle states, validation contracts, and adapter boundaries needed for AI coding agents to build software from explicit intent instead of chat-only context.
+SDD-Core is an agent-agnostic and operating-system-agnostic protocol for spec-driven development. It defines the minimum artifacts, lifecycle states, validation contracts, and adapter boundaries needed for AI coding agents to build software from explicit intent instead of chat-only context.
 
 The protocol is Markdown-first so humans can read and edit it directly. It is also machine-validable through required frontmatter, stable artifact names, and optional JSON schemas.
 
@@ -19,6 +19,7 @@ The protocol is Markdown-first so humans can read and edit it directly. It is al
 
 - Make specifications the durable source of intent.
 - Keep the protocol independent from any single AI tool, IDE, model, or orchestration runtime.
+- Keep the protocol independent from any operating system, shell, package manager, path separator, or process runner.
 - Support both greenfield and brownfield projects.
 - Use delta specs for proposed changes and archive completed changes into living specs.
 - Let agents work from file references instead of large pasted context.
@@ -29,6 +30,7 @@ The protocol is Markdown-first so humans can read and edit it directly. It is al
 
 - Define a full CLI implementation.
 - Require one agent platform or subagent mechanism.
+- Require Unix, Windows, macOS, POSIX shells, PowerShell, Bash, or any specific command runner.
 - Force every change through heavyweight PRD and architecture phases.
 - Replace local engineering conventions, test frameworks, or repository guidance.
 - Store hidden state that cannot be inspected in the repository.
@@ -44,7 +46,26 @@ SDD-Core distills four existing patterns:
 
 The protocol intentionally does not clone any one of these systems.
 
-## 5. Repository Layout
+## 5. Platform Independence
+
+SDD-Core uses logical repository paths in examples. Logical paths use `/` as a portable notation, not as an operating-system requirement.
+
+Adapters MUST translate logical paths, commands, environment access, file permissions, and process execution into the host platform's native behavior.
+
+The core protocol MUST NOT require:
+
+- POSIX paths
+- Windows paths
+- Bash
+- PowerShell
+- a specific package manager
+- a specific terminal
+- a specific filesystem case-sensitivity model
+- a specific line ending convention
+
+Artifacts SHOULD be UTF-8 Markdown with stable frontmatter. Adapters MAY normalize line endings and path separators as long as artifact identity and schema fields remain stable.
+
+## 6. Repository Layout
 
 An initialized project SHOULD use this layout:
 
@@ -90,7 +111,7 @@ Recommended directories:
 - `.sdd/profiles/`
 - `.sdd/schemas/`
 
-## 6. Core Concepts
+## 7. Core Concepts
 
 ### Constitution
 
@@ -147,7 +168,7 @@ An adapter maps the protocol to a concrete agent environment: Codex, Claude Code
 
 Adapters MAY provide slash commands, skills, prompts, MCP tools, CLI commands, or IDE workflows. They MUST preserve the artifact contracts.
 
-## 7. Required Artifact Metadata
+## 8. Required Artifact Metadata
 
 Every SDD-Core artifact SHOULD begin with frontmatter.
 
@@ -175,7 +196,7 @@ Common artifact statuses:
 
 Adapters MUST NOT infer completion from a checked box alone. Completion requires status plus evidence.
 
-## 8. Change Lifecycle
+## 9. Change Lifecycle
 
 Canonical lifecycle:
 
@@ -199,7 +220,7 @@ Lifecycle phases:
 
 Profiles MAY skip phases only when their profile rules say how the skipped information is captured.
 
-## 9. Profiles
+## 10. Profiles
 
 ### quick
 
@@ -275,7 +296,7 @@ Required output:
 - recommendations
 - unresolved questions
 
-## 10. Phase Agent Contract
+## 11. Phase Agent Contract
 
 An SDD phase agent receives artifact references and produces a structured result. It SHOULD NOT receive full repository dumps unless the adapter has no better option.
 
@@ -317,7 +338,7 @@ Allowed statuses:
 
 If status is `partial`, `blocked`, or `failed`, the result MUST include concrete next actions.
 
-## 11. Orchestrator Contract
+## 12. Orchestrator Contract
 
 The orchestrator is a state machine over artifacts.
 
@@ -338,7 +359,7 @@ It MUST NOT:
 - silently ignore constitution violations
 - overwrite unrelated user changes
 
-## 12. Task Contract
+## 13. Task Contract
 
 `tasks.md` SHOULD contain tasks that are small, ordered, and traceable.
 
@@ -362,7 +383,7 @@ Example:
 
 Parallel work is allowed only when dependencies and touched areas are clear.
 
-## 13. Verification Contract
+## 14. Verification Contract
 
 `verification.md` maps requirements to evidence.
 
@@ -375,12 +396,12 @@ Minimum structure:
 
 | Requirement | Scenario | Tasks | Evidence | Status |
 | --- | --- | --- | --- | --- |
-| REQ-001 | SCN-001 | T-002, T-004 | npm test | pass |
+| REQ-001 | SCN-001 | T-002, T-004 | project test command | pass |
 
 ## Commands
 
-- `npm test`
-- `npm run lint`
+- `project test command`
+- `project lint command`
 
 ## Manual Checks
 
@@ -405,7 +426,7 @@ Verification evidence MAY include:
 
 Adapters MUST report known verification gaps.
 
-## 14. Critique Contract
+## 15. Critique Contract
 
 The critique phase challenges the change before closure.
 
@@ -425,7 +446,7 @@ For low-risk quick changes, critique MAY be merged into verification.
 
 For enterprise changes, critique SHOULD be a hard gate.
 
-## 15. Archive and Sync Contract
+## 16. Archive and Sync Contract
 
 Archiving a change means:
 
@@ -442,7 +463,7 @@ Archive MUST NOT occur when:
 - delta specs cannot be applied unambiguously
 - the constitution has unresolved violations
 
-## 16. Adapter Contract
+## 17. Adapter Contract
 
 An adapter integrates SDD-Core into a concrete tool.
 
@@ -454,12 +475,13 @@ An adapter SHOULD define:
 - delegation mechanism
 - artifact read/write permissions
 - verification command discovery
+- host operating system path and process translation
 - schema validation support
 - state recovery behavior
 
 Adapter examples:
 
-- Codex: skills, AGENTS.md guidance, native subagents, shell verification.
+- Codex: skills, AGENTS.md guidance, native subagents, verification runner integration.
 - Claude Code: slash commands and Task subagents.
 - Cursor: rules, commands, and native agents.
 - OpenCode: commands, profiles, and per-phase model routing.
@@ -468,7 +490,7 @@ Adapter examples:
 
 The adapter can vary. The artifact contract must remain stable.
 
-## 17. Validation Levels
+## 18. Validation Levels
 
 SDD-Core supports three validation levels:
 
@@ -486,7 +508,7 @@ Artifacts validate against JSON schemas.
 
 The protocol SHOULD start at Level 1 and evolve toward Level 2.
 
-## 18. Definition of Done
+## 19. Definition of Done
 
 A change is done only when:
 
@@ -498,7 +520,7 @@ A change is done only when:
 - living specs are updated when behavior changes
 - archive record exists
 
-## 19. Open Questions
+## 20. Open Questions
 
 - Should `.sdd/protocol.md` be copied per project, or should projects pin a protocol version externally?
 - Should archive move completed changes or copy them and leave tombstones in `.sdd/changes/`?
@@ -506,8 +528,9 @@ A change is done only when:
 - How should adapters represent approval gates in fully autonomous environments?
 - Should profiles be composable, for example `bugfix + security`?
 - Should artifact IDs be global or scoped per change?
+- Should path normalization be specified in v0.2 as a formal schema rule or remain adapter-defined?
 
-## 20. v0.1 Recommendation
+## 21. v0.1 Recommendation
 
 Start with:
 
