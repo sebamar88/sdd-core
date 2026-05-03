@@ -28,10 +28,12 @@ SSD-Core fixes the workflow layer. It makes the repository carry the intent, evi
 
 ```text
 .sdd/
+  agents/
   constitution.md
   protocol.md
   profiles/
   schemas/
+  skills/
   specs/
   changes/
   archive/
@@ -153,7 +155,10 @@ Solid:
 
 - protocol v0.1
 - constitution
+- agnostic agent catalog
+- agnostic skill catalog
 - profile set
+- agent and skill schemas
 - adapter contract
 - portable reference CLI
 - validation/status/new/check/archive commands
@@ -176,6 +181,16 @@ Still early:
 - Prefer evidence over confidence.
 - Make the smallest workflow that preserves quality.
 - Never archive incomplete work quietly.
+
+## Agents And Skills
+
+SSD-Core separates roles from runtimes.
+
+Agents live under `.sdd/agents/`. They define portable role contracts for orchestration, exploration, specification, architecture, planning, implementation, verification, critique, and archiving.
+
+Skills live under `.sdd/skills/`. They define portable workflow capabilities for proposing, specifying, designing, tasking, implementing, verifying, critiquing, syncing specs, and archiving.
+
+Adapters can turn these Markdown contracts into prompts, commands, menus, subagents, jobs, or scripts. The protocol does not require any specific agent platform.
 
 ## Influences And Attribution
 

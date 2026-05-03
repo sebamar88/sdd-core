@@ -18,6 +18,12 @@ class SddToolingTests(unittest.TestCase):
             ["proposal.md", "delta-spec.md", "design.md", "tasks.md", "verification.md", "archive.md"],
         )
 
+    def test_agent_and_skill_catalogs_are_defined(self) -> None:
+        self.assertIn("orchestrator", sdd.REQUIRED_AGENTS)
+        self.assertIn("verifier", sdd.REQUIRED_AGENTS)
+        self.assertIn("propose", sdd.REQUIRED_SKILLS)
+        self.assertIn("archive", sdd.REQUIRED_SKILLS)
+
     def test_artifact_body_includes_change_metadata(self) -> None:
         body = sdd.artifact_body(
             "proposal.md",

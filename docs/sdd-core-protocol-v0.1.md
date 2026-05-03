@@ -71,6 +71,16 @@ An initialized project SHOULD use this layout:
 
 ```text
 .sdd/
+  agents/
+    orchestrator.md
+    explorer.md
+    specifier.md
+    architect.md
+    planner.md
+    implementer.md
+    verifier.md
+    critic.md
+    archivist.md
   protocol.md
   constitution.md
   profiles/
@@ -81,9 +91,21 @@ An initialized project SHOULD use this layout:
     enterprise.md
     research.md
   schemas/
+    agent.schema.json
     artifact.schema.json
     phase-result.schema.json
+    skill.schema.json
     verification.schema.json
+  skills/
+    propose.md
+    specify.md
+    design.md
+    task.md
+    implement.md
+    verify.md
+    critique.md
+    sync-specs.md
+    archive.md
   specs/
     <domain>/
       spec.md
@@ -108,8 +130,10 @@ Required directories:
 
 Recommended directories:
 
+- `.sdd/agents/`
 - `.sdd/profiles/`
 - `.sdd/schemas/`
+- `.sdd/skills/`
 
 ## 7. Core Concepts
 
@@ -167,6 +191,14 @@ The core protocol stays minimal; profiles provide practical defaults.
 An adapter maps the protocol to a concrete agent environment: Codex, Claude Code, Cursor, OpenCode, Copilot, Kiro, Windsurf, or another tool.
 
 Adapters MAY provide slash commands, skills, prompts, MCP tools, CLI commands, or IDE workflows. They MUST preserve the artifact contracts.
+
+### Agent
+
+An agent is a portable role contract under `.sdd/agents/`. It defines responsibilities, inputs, outputs, and rules. Adapters may map agents to native subagents, prompts, menus, jobs, or inline execution.
+
+### Skill
+
+A skill is a portable workflow capability under `.sdd/skills/`. It defines a phase action such as proposing, specifying, verifying, syncing specs, or archiving. Adapters may expose skills through their native command or workflow mechanisms.
 
 ## 8. Required Artifact Metadata
 

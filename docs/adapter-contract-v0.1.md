@@ -194,6 +194,8 @@ An adapter is SDD-Core compliant when it can:
 
 - initialize or detect `.sdd/`
 - read the constitution
+- map supported agent role contracts
+- map supported skill contracts
 - select or accept a profile
 - create a change artifact set
 - write phase results or equivalent artifact updates
@@ -209,6 +211,8 @@ The adapter may define:
 - command names
 - UI flows
 - model routing
+- agent mappings
+- skill mappings
 - subagent prompts
 - process execution mechanics
 - installation details

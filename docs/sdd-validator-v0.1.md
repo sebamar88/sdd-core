@@ -70,8 +70,10 @@ python scripts/sdd.py new fix-login --profile bugfix --root path-to-repository
 The validator checks:
 
 - required `.sdd/` directories
+- required agent files
 - required protocol and constitution files
 - required profile files
+- required skill files
 - required schema files
 - Markdown frontmatter presence
 - common frontmatter keys

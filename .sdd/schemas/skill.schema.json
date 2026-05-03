@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sdd-core.local/schemas/skill.schema.json",
+  "title": "SDD-Core Skill Contract Metadata",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["schema", "artifact", "skill", "status"],
+  "properties": {
+    "schema": {
+      "const": "sdd.skill.v1"
+    },
+    "artifact": {
+      "const": "skill"
+    },
+    "skill": {
+      "type": "string",
+      "enum": [
+        "propose",
+        "specify",
+        "design",
+        "task",
+        "implement",
+        "verify",
+        "critique",
+        "sync-specs",
+        "archive"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": ["draft", "active", "blocked", "archived"]
+    },
+    "created": {
+      "type": "string",
+      "format": "date"
+    },
+    "updated": {
+      "type": "string",
+      "format": "date"
+    }
+  }
+}

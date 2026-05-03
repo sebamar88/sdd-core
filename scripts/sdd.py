@@ -13,11 +13,25 @@ from typing import Iterable
 
 REQUIRED_DIRECTORIES = [
     ".sdd",
+    ".sdd/agents",
     ".sdd/profiles",
     ".sdd/schemas",
+    ".sdd/skills",
     ".sdd/specs",
     ".sdd/changes",
     ".sdd/archive",
+]
+
+REQUIRED_AGENTS = [
+    "orchestrator",
+    "explorer",
+    "specifier",
+    "architect",
+    "planner",
+    "implementer",
+    "verifier",
+    "critic",
+    "archivist",
 ]
 
 REQUIRED_PROFILES = [
@@ -30,9 +44,23 @@ REQUIRED_PROFILES = [
 ]
 
 REQUIRED_SCHEMAS = [
+    "agent.schema.json",
     "artifact.schema.json",
     "phase-result.schema.json",
+    "skill.schema.json",
     "verification.schema.json",
+]
+
+REQUIRED_SKILLS = [
+    "propose",
+    "specify",
+    "design",
+    "task",
+    "implement",
+    "verify",
+    "critique",
+    "sync-specs",
+    "archive",
 ]
 
 PROFILE_ARTIFACTS = {
@@ -285,10 +313,20 @@ def validate_required_files(root: Path) -> list[Finding]:
         if not path.is_file():
             findings.append(Finding("error", path, "required file is missing"))
 
+    for agent in REQUIRED_AGENTS:
+        path = logical_path(root, f".sdd/agents/{agent}.md")
+        if not path.is_file():
+            findings.append(Finding("error", path, "required agent is missing"))
+
     for profile in REQUIRED_PROFILES:
         path = logical_path(root, f".sdd/profiles/{profile}.md")
         if not path.is_file():
             findings.append(Finding("error", path, "required profile is missing"))
+
+    for skill in REQUIRED_SKILLS:
+        path = logical_path(root, f".sdd/skills/{skill}.md")
+        if not path.is_file():
+            findings.append(Finding("error", path, "required skill is missing"))
 
     for schema_name in REQUIRED_SCHEMAS:
         path = logical_path(root, f".sdd/schemas/{schema_name}")
