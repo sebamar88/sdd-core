@@ -5,6 +5,7 @@ import json
 import re
 import sys
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 from typing import Iterable
 
@@ -32,6 +33,23 @@ REQUIRED_SCHEMAS = [
     "phase-result.schema.json",
     "verification.schema.json",
 ]
+
+PROFILE_ARTIFACTS = {
+    "quick": ["proposal.md", "tasks.md", "verification.md"],
+    "standard": ["proposal.md", "delta-spec.md", "design.md", "tasks.md", "verification.md", "archive.md"],
+    "bugfix": ["proposal.md", "tasks.md", "verification.md"],
+    "refactor": ["proposal.md", "tasks.md", "verification.md"],
+    "enterprise": [
+        "proposal.md",
+        "delta-spec.md",
+        "design.md",
+        "tasks.md",
+        "verification.md",
+        "critique.md",
+        "archive.md",
+    ],
+    "research": ["proposal.md", "findings.md", "decision.md"],
+}
 
 ARTIFACT_STATUSES = {
     "draft",
@@ -65,6 +83,127 @@ class Finding:
 
 def logical_path(root: Path, value: str) -> Path:
     return root.joinpath(*value.split("/"))
+
+
+def artifact_name(filename: str) -> str:
+    return filename.removesuffix(".md")
+
+
+def frontmatter(schema: str, artifact: str, change_id: str, profile: str, today: str) -> str:
+    return "\n".join(
+        [
+            "---",
+            f"schema: {schema}",
+            f"artifact: {artifact}",
+            f"change_id: {change_id}",
+            f"profile: {profile}",
+            "status: draft",
+            f"created: {today}",
+            f"updated: {today}",
+            "---",
+            "",
+        ]
+    )
+
+
+def artifact_title(filename: str) -> str:
+    words = artifact_name(filename).replace("-", " ").split()
+    return " ".join(word.capitalize() for word in words)
+
+
+def artifact_body(filename: str, change_id: str, title: str, profile: str, today: str) -> str:
+    artifact = artifact_name(filename)
+    header = frontmatter("sdd.artifact.v1", artifact, change_id, profile, today)
+    heading = f"# {artifact_title(filename)}"
+
+    if filename == "proposal.md":
+        return (
+            header
+            + f"{heading}\n\n"
+            + f"## Intent\n\n{title}\n\n"
+            + "## Scope\n\n- Define the intended change.\n\n"
+            + "## Non-Scope\n\n- Record what this change will not address.\n\n"
+            + "## Risks\n\n- Record known risks or write `None`.\n"
+        )
+
+    if filename == "delta-spec.md":
+        return (
+            header
+            + f"{heading}\n\n"
+            + "## ADDED\n\n- List new observable behavior.\n\n"
+            + "## MODIFIED\n\n- List changed observable behavior.\n\n"
+            + "## REMOVED\n\n- List removed observable behavior.\n"
+        )
+
+    if filename == "design.md":
+        return (
+            header
+            + f"{heading}\n\n"
+            + "## Approach\n\n- Describe the technical approach.\n\n"
+            + "## Decisions\n\n- Record important decisions and rationale.\n\n"
+            + "## Alternatives Rejected\n\n- Record alternatives and why they were rejected.\n"
+        )
+
+    if filename == "tasks.md":
+        return (
+            header
+            + f"{heading}\n\n"
+            + "- [ ] T-001 Define the first concrete task.\n"
+            + "  - Requirement: proposal\n"
+            + "  - Evidence: verification.md\n"
+        )
+
+    if filename == "verification.md":
+        return (
+            frontmatter("sdd.verification.v1", artifact, change_id, profile, today)
+            + f"{heading}\n\n"
+            + "## Matrix\n\n"
+            + "| Requirement | Scenario | Tasks | Evidence | Status |\n"
+            + "| --- | --- | --- | --- | --- |\n"
+            + "| proposal | initial scenario | T-001 | pending verification evidence | not-run |\n\n"
+            + "## Commands\n\n- Record host-project verification actions.\n\n"
+            + "## Manual Checks\n\n- Record manual evidence when relevant.\n\n"
+            + "## Gaps\n\n- Record known gaps or write `None`.\n"
+        )
+
+    if filename == "critique.md":
+        return (
+            header
+            + f"{heading}\n\n"
+            + "## Verdict\n\n- draft\n\n"
+            + "## Findings\n\n- Record blocking and non-blocking findings.\n\n"
+            + "## Required Fixes\n\n- Record required fixes or write `None`.\n"
+        )
+
+    if filename == "archive.md":
+        return (
+            header
+            + f"{heading}\n\n"
+            + "## Archive Status\n\n- draft\n\n"
+            + "## Spec Sync\n\n- Record living spec updates.\n\n"
+            + "## Final Evidence\n\n- Link verification and critique evidence.\n"
+        )
+
+    if filename == "findings.md":
+        return (
+            header
+            + f"{heading}\n\n"
+            + "## Research Question\n\n{title}\n\n"
+            + "## Sources Inspected\n\n- Record sources, files, commands, or URLs.\n\n"
+            + "## Findings\n\n- Record findings.\n\n"
+            + "## Unresolved Questions\n\n- Record remaining uncertainty or write `None`.\n"
+        )
+
+    if filename == "decision.md":
+        return (
+            header
+            + f"{heading}\n\n"
+            + "## Recommendation\n\n- Record the recommendation.\n\n"
+            + "## Rationale\n\n- Record the rationale.\n\n"
+            + "## Tradeoffs\n\n- Record tradeoffs.\n"
+        )
+
+    return header + f"{heading}\n"
 
 
 def read_frontmatter(path: Path) -> tuple[dict[str, str], str | None]:
@@ -217,6 +356,40 @@ def validate(root: Path) -> list[Finding]:
     return findings
 
 
+def create_change(root: Path, change_id: str, profile: str, title: str | None) -> list[Finding]:
+    findings: list[Finding] = []
+    if not TOKEN_PATTERN.match(change_id):
+        return [Finding("error", None, f"change-id is not valid: {change_id}")]
+
+    if profile not in PROFILE_ARTIFACTS:
+        return [Finding("error", None, f"profile is not recognized: {profile}")]
+
+    changes_dir = root / ".sdd" / "changes"
+    profile_path = root / ".sdd" / "profiles" / f"{profile}.md"
+    if not changes_dir.is_dir():
+        findings.append(Finding("error", changes_dir, "required changes directory is missing"))
+    if not profile_path.is_file():
+        findings.append(Finding("error", profile_path, "selected profile file is missing"))
+    if findings:
+        return findings
+
+    change_dir = changes_dir / change_id
+    if change_dir.exists():
+        return [Finding("error", change_dir, "change already exists")]
+
+    today = date.today().isoformat()
+    resolved_title = title or change_id.replace("-", " ")
+    change_dir.mkdir(parents=True)
+    for filename in PROFILE_ARTIFACTS[profile]:
+        path = change_dir / filename
+        path.write_text(artifact_body(filename, change_id, resolved_title, profile, today), encoding="utf-8")
+
+    print(f"Created change: {change_dir.as_posix()}")
+    for filename in PROFILE_ARTIFACTS[profile]:
+        print(f"- {filename}")
+    return []
+
+
 def print_findings(root: Path, findings: Iterable[Finding]) -> int:
     findings = list(findings)
     if not findings:
@@ -241,6 +414,24 @@ def build_parser() -> argparse.ArgumentParser:
         help="repository root to validate; defaults to the current directory",
     )
 
+    new_parser = subcommands.add_parser("new", help="create a new SDD-Core change artifact set")
+    new_parser.add_argument("change_id", help="kebab-case change identifier")
+    new_parser.add_argument(
+        "--profile",
+        default="standard",
+        choices=REQUIRED_PROFILES,
+        help="profile to use for the change; defaults to standard",
+    )
+    new_parser.add_argument(
+        "--title",
+        help="human-readable change intent for the proposal",
+    )
+    new_parser.add_argument(
+        "--root",
+        default=".",
+        help="repository root; defaults to the current directory",
+    )
+
     return parser
 
 
@@ -251,6 +442,13 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "validate":
         root = Path(args.root).resolve()
         return print_findings(root, validate(root))
+
+    if args.command == "new":
+        root = Path(args.root).resolve()
+        findings = create_change(root, args.change_id, args.profile, args.title)
+        if findings:
+            return print_findings(root, findings)
+        return 0
 
     parser.error(f"unsupported command: {args.command}")
     return 2
