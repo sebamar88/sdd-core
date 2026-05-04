@@ -24,6 +24,7 @@ It does not mean the protocol is finished. It means the current framework can be
 - `ssd-core check` blocks archive when tasks remain open or verification is incomplete.
 - `ssd-core sync-specs` creates conservative living specs from verified delta specs.
 - `ssd-core archive` refuses incomplete changes and moves verified changes into `.sdd/archive`.
+- Release readiness can be checked with one portable command: `python scripts/release_check.py`.
 
 ## Non-Goals For v0.1
 
@@ -38,29 +39,18 @@ It does not mean the protocol is finished. It means the current framework can be
 Run these checks before tagging or publishing v0.1.x:
 
 ```text
-python -m py_compile scripts/sdd.py ssd_core/cli.py tests/test_sdd.py
-python -m unittest tests/test_sdd.py
-python scripts/sdd.py validate
-python scripts/sdd.py status
-python -m pip install . --dry-run
-python -m venv .tmp-venv-prod
+python scripts/release_check.py
 ```
 
-Then run the installed CLI from the virtual environment:
+The release check runs source validation, tests, package dry-run, isolated wheel install, installed CLI smoke tests, and packaged template checks.
+
+For manual debugging, keep the generated temporary repository and virtual environment:
 
 ```text
-# Windows
-.tmp-venv-prod/Scripts/python.exe -m pip install .
-.tmp-venv-prod/Scripts/ssd-core.exe version
-.tmp-venv-prod/Scripts/ssd-core.exe init --root .tmp-prod-smoke
-.tmp-venv-prod/Scripts/ssd-core.exe validate --root .tmp-prod-smoke
-
-# POSIX
-.tmp-venv-prod/bin/python -m pip install .
-.tmp-venv-prod/bin/ssd-core version
-.tmp-venv-prod/bin/ssd-core init --root .tmp-prod-smoke
-.tmp-venv-prod/bin/ssd-core validate --root .tmp-prod-smoke
+python scripts/release_check.py --keep-temp
 ```
+
+CI should run the same command on Windows, macOS, and Linux before release.
 
 ## Compatibility Policy
 

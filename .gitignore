@@ -8,6 +8,7 @@ __pycache__/
 .tmp-venv*/
 .tmp-prod-smoke*/
 .tmp-wheel/
+.tmp-release-check/
 build/
 dist/
 *.egg-info/

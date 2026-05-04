@@ -192,12 +192,14 @@ Solid:
 - init/validate/status/new/check/sync-specs/archive commands
 - conservative living spec sync
 - release checklist and production readiness notes
+- portable release check script
+- CI workflow for Windows, macOS, and Linux
 
 Still early:
 
 - full JSON Schema validation
 - semantic living spec merge
-- concrete adapters
+- runtime command wrappers for adapter manifests
 - richer templates per profile
 
 ## Design Principles
@@ -244,6 +246,12 @@ See [docs/adapters-v0.1.md](docs/adapters-v0.1.md) for the mapping model and ada
 The v0.1 production bar is conservative: the CLI must build as a wheel, install in an isolated environment, initialize a new repository from packaged templates, validate that repository, and keep source checkout compatibility through `python scripts/sdd.py`.
 
 See [docs/production-readiness-v0.1.md](docs/production-readiness-v0.1.md) for supported guarantees, non-goals, and release checks.
+
+Run the complete local release gate:
+
+```text
+python scripts/release_check.py
+```
 
 ## Influences And Attribution
 
