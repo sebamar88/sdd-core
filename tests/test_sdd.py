@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import contextlib
 import io
+import json
+import tomllib
 import uuid
 import unittest
 from importlib.resources import files
@@ -15,6 +17,13 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 class SddToolingTests(unittest.TestCase):
     def test_version_is_defined(self) -> None:
         self.assertEqual(sdd.VERSION, "0.1.0")
+
+    def test_distribution_versions_match(self) -> None:
+        pyproject = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+        package = json.loads((REPO_ROOT / "package.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(pyproject["project"]["version"], sdd.VERSION)
+        self.assertEqual(package["version"], sdd.VERSION)
 
     def test_packaged_templates_are_present(self) -> None:
         template_root = files("ssd_core").joinpath("templates")

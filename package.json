@@ -3,6 +3,14 @@
   "version": "0.1.0",
   "description": "Portable spec-driven development framework for any agent and operating system.",
   "license": "MIT",
+  "homepage": "https://github.com/sebamar88/sdd-core#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sebamar88/sdd-core.git"
+  },
+  "bugs": {
+    "url": "https://github.com/sebamar88/sdd-core/issues"
+  },
   "bin": {
     "ssd-core": "bin/ssd-core.js"
   },

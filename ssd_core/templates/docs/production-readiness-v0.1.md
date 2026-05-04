@@ -43,7 +43,7 @@ Run these checks before tagging or publishing v0.1.x:
 python scripts/release_check.py
 ```
 
-The release check runs source validation, tests, package dry-run, isolated wheel install, installed CLI smoke tests, npm wrapper smoke tests when Node/npm are available, and packaged template checks.
+The release check verifies version consistency, source validation, tests, package dry-run, isolated wheel install, installed CLI smoke tests, npm wrapper smoke tests when Node/npm are available, and packaged template checks.
 
 For manual debugging, keep the generated temporary repository and virtual environment:
 
@@ -63,7 +63,7 @@ Required GitHub secret:
 NPM_REPOSITORY_TOKEN
 ```
 
-The workflow runs `python scripts/release_check.py` before `npm publish`, and only publishes on manual `workflow_dispatch` or `v*` tags.
+The workflow runs `python scripts/release_check.py` before `npm publish --provenance`, and only publishes on manual `workflow_dispatch` or `v*` tags. For tag releases, the tag must match the package version, for example `v0.1.0`.
 
 ## Compatibility Policy
 

@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import sys
 import tarfile
+import tomllib
 import venv
 from pathlib import Path
 
@@ -17,6 +18,7 @@ VENV_ROOT = TEMP_ROOT / "venv"
 NPM_PACK_ROOT = TEMP_ROOT / "npm-pack"
 NPM_PROJECT_ROOT = TEMP_ROOT / "npm-project"
 NPM_SMOKE_ROOT = TEMP_ROOT / "npm-smoke-repo"
+VERSION_PREFIX = 'VERSION = "'
 
 
 def run(command: list[str], *, cwd: Path = REPO_ROOT) -> None:
@@ -62,6 +64,51 @@ def node_command() -> str | None:
     return shutil.which("node")
 
 
+def read_project_version() -> str:
+    metadata = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    return str(metadata["project"]["version"])
+
+
+def read_package_version() -> str:
+    import json
+
+    metadata = json.loads((REPO_ROOT / "package.json").read_text(encoding="utf-8"))
+    return str(metadata["version"])
+
+
+def read_cli_version() -> str:
+    text = (REPO_ROOT / "ssd_core" / "cli.py").read_text(encoding="utf-8")
+    for line in text.splitlines():
+        if line.startswith(VERSION_PREFIX):
+            return line.split('"', 2)[1]
+    raise AssertionError("ssd_core.cli VERSION was not found")
+
+
+def verify_versions() -> str:
+    pyproject_version = read_project_version()
+    package_version = read_package_version()
+    cli_version = read_cli_version()
+    versions = {
+        "pyproject.toml": pyproject_version,
+        "package.json": package_version,
+        "ssd_core/cli.py": cli_version,
+    }
+
+    if len(set(versions.values())) != 1:
+        details = ", ".join(f"{source}={version}" for source, version in versions.items())
+        raise AssertionError(f"version mismatch: {details}")
+
+    tag_name = os.environ.get("GITHUB_REF_NAME", "")
+    ref_type = os.environ.get("GITHUB_REF_TYPE", "")
+    if ref_type == "tag" or tag_name.startswith("v"):
+        expected_tag = f"v{pyproject_version}"
+        if tag_name != expected_tag:
+            raise AssertionError(f"tag {tag_name!r} does not match package version {expected_tag!r}")
+
+    print(f"Version check passed: {pyproject_version}", flush=True)
+    return pyproject_version
+
+
 def clean_temp() -> None:
     if TEMP_ROOT.exists():
         shutil.rmtree(TEMP_ROOT)
@@ -72,6 +119,7 @@ def release_check(*, keep_temp: bool) -> None:
     TEMP_ROOT.mkdir(parents=True)
 
     try:
+        verify_versions()
         run([sys.executable, "-m", "py_compile", "scripts/sdd.py", "ssd_core/cli.py", "ssd_core/__main__.py", "tests/test_sdd.py"])
         run([sys.executable, "-m", "unittest", "tests/test_sdd.py"])
         run([sys.executable, "scripts/sdd.py", "validate"])

@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   publish:
@@ -33,6 +34,6 @@ jobs:
         run: python scripts/release_check.py
 
       - name: Publish to npm
-        run: npm publish
+        run: npm publish --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_REPOSITORY_TOKEN }}
