@@ -16,3 +16,4 @@ npm-debug.log*
 build/
 dist/
 *.egg-info/
+.vscode

@@ -14,6 +14,8 @@ jobs:
   publish:
     name: Publish npm package
     runs-on: ubuntu-latest
+    env:
+      NPM_PUBLISH_TOKEN: ${{ secrets.NPM_REPOSITORY_TOKEN }}
 
     steps:
       - name: Check out repository
@@ -35,14 +37,14 @@ jobs:
 
       - name: Validate npm token
         run: |
-          if [ -z "${NODE_AUTH_TOKEN}" ]; then
-            echo "::error::NPM_REPOSITORY_TOKEN is not available to this workflow. Add it as a repository Actions secret, then rerun Publish npm."
+          if [ -z "${NPM_PUBLISH_TOKEN}" ]; then
+            echo "::error::NPM_REPOSITORY_TOKEN is not available to this workflow. Verify the repository secret exists and that this workflow can access it."
             exit 1
           fi
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_REPOSITORY_TOKEN }}
+          NPM_PUBLISH_TOKEN: ${{ env.NPM_PUBLISH_TOKEN }}
 
       - name: Publish to npm
         run: npm publish --provenance
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_REPOSITORY_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ env.NPM_PUBLISH_TOKEN }}
