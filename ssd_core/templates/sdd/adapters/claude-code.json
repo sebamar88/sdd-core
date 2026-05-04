@@ -1,0 +1,48 @@
+{
+  "schema": "sdd.adapter-capabilities.v1",
+  "adapter": "claude-code",
+  "version": "0.1.0",
+  "description": "Concrete adapter manifest for running SSD-Core with Claude Code while preserving portable Markdown artifacts and verification gates.",
+  "host": {
+    "agent_runtime": "claude-code",
+    "operating_system": "any",
+    "path_translation": true,
+    "process_execution": "native-tool-or-shell",
+    "state_location": "runtime-owned-outside-sdd-core",
+    "recommended_invocation": "claude"
+  },
+  "profiles": {
+    "supported": ["quick", "standard", "bugfix", "refactor", "enterprise", "research"],
+    "selection": "smallest-safe-profile"
+  },
+  "agents": {
+    "supported": ["orchestrator", "explorer", "specifier", "architect", "planner", "implementer", "verifier", "critic", "archivist"],
+    "mapping": {
+      "orchestrator": "primary-claude-code-session",
+      "explorer": "read-only-repository-search",
+      "specifier": "artifact-authoring-pass",
+      "architect": "design-review-pass",
+      "planner": "task-breakdown-pass",
+      "implementer": "code-editing-pass",
+      "verifier": "command-and-evidence-pass",
+      "critic": "review-pass",
+      "archivist": "sync-and-archive-pass"
+    },
+    "delegation": "single-agent-or-native-task-splitting"
+  },
+  "skills": {
+    "supported": ["propose", "specify", "design", "task", "implement", "verify", "critique", "sync-specs", "archive"],
+    "mapping": "load .sdd/skills/<skill>.md as phase instructions before acting"
+  },
+  "verification": {
+    "command_execution": true,
+    "manual_evidence": true,
+    "screenshot_evidence": "when-tooling-is-available",
+    "required_core_commands": ["ssd-core validate", "ssd-core status", "ssd-core check <change-id>"]
+  },
+  "state": {
+    "source_of_truth": "repository-artifacts",
+    "resume_active_change": true,
+    "runtime_state_must_not_be_committed": true
+  }
+}

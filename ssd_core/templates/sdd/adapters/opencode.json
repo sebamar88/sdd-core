@@ -1,0 +1,48 @@
+{
+  "schema": "sdd.adapter-capabilities.v1",
+  "adapter": "opencode",
+  "version": "0.1.0",
+  "description": "Concrete adapter manifest for running SSD-Core with OpenCode as an agentic coding runtime.",
+  "host": {
+    "agent_runtime": "opencode",
+    "operating_system": "any",
+    "path_translation": true,
+    "process_execution": "native-tool-or-shell",
+    "state_location": "runtime-owned-outside-sdd-core",
+    "recommended_invocation": "opencode"
+  },
+  "profiles": {
+    "supported": ["quick", "standard", "bugfix", "refactor", "enterprise", "research"],
+    "selection": "smallest-safe-profile"
+  },
+  "agents": {
+    "supported": ["orchestrator", "explorer", "specifier", "architect", "planner", "implementer", "verifier", "critic", "archivist"],
+    "mapping": {
+      "orchestrator": "primary-opencode-session",
+      "explorer": "repository-inspection-phase",
+      "specifier": "spec-authoring-phase",
+      "architect": "design-phase",
+      "planner": "task-phase",
+      "implementer": "code-edit-phase",
+      "verifier": "verification-phase",
+      "critic": "review-phase",
+      "archivist": "archive-phase"
+    },
+    "delegation": "runtime-specific-if-supported"
+  },
+  "skills": {
+    "supported": ["propose", "specify", "design", "task", "implement", "verify", "critique", "sync-specs", "archive"],
+    "mapping": "translate .sdd/skills/<skill>.md into OpenCode task instructions"
+  },
+  "verification": {
+    "command_execution": true,
+    "manual_evidence": true,
+    "screenshot_evidence": "external-or-manual",
+    "required_core_commands": ["ssd-core validate", "ssd-core status", "ssd-core check <change-id>"]
+  },
+  "state": {
+    "source_of_truth": "repository-artifacts",
+    "resume_active_change": true,
+    "runtime_state_must_not_be_committed": true
+  }
+}

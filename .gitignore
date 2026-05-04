@@ -2,6 +2,8 @@
 __pycache__/
 *.pyc
 .tmp-tests/
+.tmp-adapter-smoke*/
+.tmp-adapter-wheel-smoke*/
 .tmp-install/
 .tmp-venv*/
 .tmp-prod-smoke*/

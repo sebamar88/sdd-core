@@ -1,0 +1,48 @@
+{
+  "schema": "sdd.adapter-capabilities.v1",
+  "adapter": "codex",
+  "version": "0.1.0",
+  "description": "Concrete adapter manifest for running SSD-Core with Codex-style coding agents while keeping repository artifacts as the source of truth.",
+  "host": {
+    "agent_runtime": "codex",
+    "operating_system": "any",
+    "path_translation": true,
+    "process_execution": "native-tool-or-shell",
+    "state_location": "runtime-owned-outside-sdd-core",
+    "recommended_invocation": "codex"
+  },
+  "profiles": {
+    "supported": ["quick", "standard", "bugfix", "refactor", "enterprise", "research"],
+    "selection": "smallest-safe-profile"
+  },
+  "agents": {
+    "supported": ["orchestrator", "explorer", "specifier", "architect", "planner", "implementer", "verifier", "critic", "archivist"],
+    "mapping": {
+      "orchestrator": "leader-session",
+      "explorer": "read-only-codebase-explorer-or-inline-search",
+      "specifier": "spec-writing-phase",
+      "architect": "architecture-review-or-subagent",
+      "planner": "task-planning-phase",
+      "implementer": "implementation-phase",
+      "verifier": "test-and-evidence-phase",
+      "critic": "adversarial-review-phase",
+      "archivist": "archive-and-sync-phase"
+    },
+    "delegation": "native-subagents-when-available"
+  },
+  "skills": {
+    "supported": ["propose", "specify", "design", "task", "implement", "verify", "critique", "sync-specs", "archive"],
+    "mapping": "read .sdd/skills/<skill>.md and execute through Codex tool use"
+  },
+  "verification": {
+    "command_execution": true,
+    "manual_evidence": true,
+    "screenshot_evidence": "when-browser-or-visual-tools-are-available",
+    "required_core_commands": ["ssd-core validate", "ssd-core status", "ssd-core check <change-id>"]
+  },
+  "state": {
+    "source_of_truth": "repository-artifacts",
+    "resume_active_change": true,
+    "runtime_state_must_not_be_committed": true
+  }
+}

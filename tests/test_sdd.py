@@ -21,6 +21,12 @@ class SddToolingTests(unittest.TestCase):
 
         self.assertTrue(template_root.joinpath("sdd", "constitution.md").is_file())
         self.assertTrue(template_root.joinpath("sdd", "adapters", "generic-markdown.json").is_file())
+        self.assertTrue(template_root.joinpath("sdd", "adapters", "codex.json").is_file())
+        self.assertTrue(template_root.joinpath("sdd", "adapters", "claude-code.json").is_file())
+        self.assertTrue(template_root.joinpath("sdd", "adapters", "gemini-cli.json").is_file())
+        self.assertTrue(template_root.joinpath("sdd", "adapters", "opencode.json").is_file())
+        self.assertTrue(template_root.joinpath("sdd", "adapters", "qwen-code.json").is_file())
+        self.assertTrue(template_root.joinpath("docs", "adapters-v0.1.md").is_file())
         self.assertTrue(template_root.joinpath("docs", "sdd-core-protocol-v0.1.md").is_file())
 
     def test_standard_profile_artifacts_are_defined(self) -> None:
@@ -37,6 +43,11 @@ class SddToolingTests(unittest.TestCase):
 
     def test_adapter_manifest_is_required(self) -> None:
         self.assertIn("generic-markdown.json", sdd.REQUIRED_ADAPTERS)
+        self.assertIn("codex.json", sdd.REQUIRED_ADAPTERS)
+        self.assertIn("claude-code.json", sdd.REQUIRED_ADAPTERS)
+        self.assertIn("gemini-cli.json", sdd.REQUIRED_ADAPTERS)
+        self.assertIn("opencode.json", sdd.REQUIRED_ADAPTERS)
+        self.assertIn("qwen-code.json", sdd.REQUIRED_ADAPTERS)
         self.assertIn("adapter-capabilities.schema.json", sdd.REQUIRED_SCHEMAS)
 
     def test_artifact_body_includes_change_metadata(self) -> None:

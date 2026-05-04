@@ -27,7 +27,12 @@ REQUIRED_DIRECTORIES = [
 ]
 
 REQUIRED_ADAPTERS = [
+    "claude-code.json",
+    "codex.json",
     "generic-markdown.json",
+    "gemini-cli.json",
+    "opencode.json",
+    "qwen-code.json",
 ]
 
 REQUIRED_AGENTS = [
@@ -105,6 +110,7 @@ FOUNDATION_COPY_FILES = [
 FOUNDATION_DOC_FILES = [
     "adapter-contract-v0.1.md",
     "adapter-authoring-v0.1.md",
+    "adapters-v0.1.md",
     "production-readiness-v0.1.md",
     "sdd-core-protocol-v0.1.md",
     "sdd-validator-v0.1.md",

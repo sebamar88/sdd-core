@@ -1,0 +1,48 @@
+{
+  "schema": "sdd.adapter-capabilities.v1",
+  "adapter": "gemini-cli",
+  "version": "0.1.0",
+  "description": "Concrete adapter manifest for running SSD-Core with Gemini CLI as a repository-aware command-line agent.",
+  "host": {
+    "agent_runtime": "gemini-cli",
+    "operating_system": "any",
+    "path_translation": true,
+    "process_execution": "native-tool-or-shell",
+    "state_location": "runtime-owned-outside-sdd-core",
+    "recommended_invocation": "gemini"
+  },
+  "profiles": {
+    "supported": ["quick", "standard", "bugfix", "refactor", "enterprise", "research"],
+    "selection": "smallest-safe-profile"
+  },
+  "agents": {
+    "supported": ["orchestrator", "explorer", "specifier", "architect", "planner", "implementer", "verifier", "critic", "archivist"],
+    "mapping": {
+      "orchestrator": "primary-gemini-cli-session",
+      "explorer": "read-only-context-gathering-prompt",
+      "specifier": "specification-prompt",
+      "architect": "design-analysis-prompt",
+      "planner": "task-planning-prompt",
+      "implementer": "implementation-prompt",
+      "verifier": "verification-prompt",
+      "critic": "critique-prompt",
+      "archivist": "archive-prompt"
+    },
+    "delegation": "single-agent-by-default"
+  },
+  "skills": {
+    "supported": ["propose", "specify", "design", "task", "implement", "verify", "critique", "sync-specs", "archive"],
+    "mapping": "prepend the selected .sdd/skills/<skill>.md contract to the Gemini CLI task prompt"
+  },
+  "verification": {
+    "command_execution": true,
+    "manual_evidence": true,
+    "screenshot_evidence": "external-or-manual",
+    "required_core_commands": ["ssd-core validate", "ssd-core status", "ssd-core check <change-id>"]
+  },
+  "state": {
+    "source_of_truth": "repository-artifacts",
+    "resume_active_change": true,
+    "runtime_state_must_not_be_committed": true
+  }
+}

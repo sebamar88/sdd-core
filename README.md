@@ -186,6 +186,7 @@ Solid:
 - end-to-end standard-profile example
 - end-to-end lifecycle test
 - adapter contract
+- concrete adapter manifests for Codex, Claude Code, Gemini CLI, OpenCode, and Qwen Code
 - installable portable reference CLI
 - packaged wheel with bundled templates
 - init/validate/status/new/check/sync-specs/archive commands
@@ -225,6 +226,18 @@ SSD-Core ships a generic Markdown adapter manifest at `.sdd/adapters/generic-mar
 This adapter requires no specific agent runtime. It defines the baseline contract for any tool or human workflow that can read and write repository artifacts.
 
 See [docs/adapter-authoring-v0.1.md](docs/adapter-authoring-v0.1.md) to build a concrete adapter.
+
+## Runtime Adapters
+
+SSD-Core also ships concrete capability manifests for commonly used coding-agent runtimes:
+
+- Codex: `.sdd/adapters/codex.json`
+- Claude Code: `.sdd/adapters/claude-code.json`
+- Gemini CLI: `.sdd/adapters/gemini-cli.json`
+- OpenCode: `.sdd/adapters/opencode.json`
+- Qwen Code: `.sdd/adapters/qwen-code.json`
+
+See [docs/adapters-v0.1.md](docs/adapters-v0.1.md) for the mapping model and adapter boundaries.
 
 ## Production Readiness
 
