@@ -7,6 +7,7 @@
 - Hardened frontmatter validation with ISO date checks and consistency checks for change and living spec artifacts.
 - Added regression tests for validation edge cases and mismatch scenarios.
 - Added one-week closure plan and closure record artifacts under `docs/superpowers/plans/`.
+- Updated npm publish workflow to use `--access public` with provenance publishing.
 
 ## 0.1.0 - 2026-05-03
 

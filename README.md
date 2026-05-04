@@ -1,30 +1,94 @@
 # SSD-Core
 
-**Spec-driven development for any agent, on any operating system.**
+Spec-driven development for any agent, on any operating system.
 
-SSD-Core is a portable SDD framework for teams that want AI coding agents to build from durable specifications instead of fragile chat history.
-
-It gives you a small protocol, a repository-native artifact layout, profile-driven workflows, and dependency-free reference tooling. Use it with Codex, Claude Code, Cursor, OpenCode, Copilot, Kiro, a local script, or an agent you have not invented yet. The protocol does not care. Your specs remain plain Markdown in your repo.
+SSD-Core is a portable workflow layer for teams using coding agents. It keeps intent, decisions, and evidence in repository artifacts instead of fragile chat memory.
 
 ```text
 Intent -> Spec -> Design -> Tasks -> Verification -> Archive
 ```
 
-No lock-in. No hidden state. No tool-specific magic as the source of truth.
+No lock-in. No hidden state. No runtime-specific source of truth.
 
-## Why This Exists
+## Start Here
 
-AI agents are fast, but speed without shared intent creates drift:
+Choose your path:
 
-- requirements live in a chat window
-- implementation starts before behavior is agreed
-- tests prove the code runs, not that the right thing was built
-- handoffs lose context
-- each agent reinvents process from scratch
+- New to SSD-Core: go to [5-Minute Path](#5-minute-path)
+- Running SSD-Core in a team: go to [Team Path](#team-path)
 
-SSD-Core fixes the workflow layer. It makes the repository carry the intent, evidence, and lifecycle.
+## 5-Minute Path
 
-## What You Get Today
+### 1) Install
+
+Python/uv path:
+
+```text
+uv tool install .
+```
+
+Node wrapper path:
+
+```text
+npm install -g .
+```
+
+The npm package delegates to the same Python core and requires Python 3.11+ on `PATH`.
+
+### 2) Verify CLI
+
+```text
+ssd-core version
+```
+
+### 3) Initialize SDD-Core in a repository
+
+```text
+ssd-core init --root path-to-repository
+```
+
+### 4) Validate baseline
+
+```text
+ssd-core validate --root path-to-repository
+```
+
+### 5) Open your first change
+
+```text
+ssd-core new add-search --profile standard --title "Add search" --root path-to-repository
+```
+
+### 6) Track and close
+
+```text
+ssd-core status --root path-to-repository
+ssd-core check add-search --root path-to-repository
+ssd-core sync-specs add-search --root path-to-repository
+ssd-core archive add-search --root path-to-repository
+```
+
+## Team Path
+
+If you are adopting SSD-Core across a team, focus on these in order:
+
+1. Read the protocol baseline: [docs/sdd-core-protocol-v0.1.md](docs/sdd-core-protocol-v0.1.md)
+2. Align adapter boundaries: [docs/adapter-contract-v0.1.md](docs/adapter-contract-v0.1.md)
+3. Select profile defaults (`quick`, `standard`, `bugfix`, `refactor`, `enterprise`, `research`)
+4. Enforce release gate in CI with `python scripts/release_check.py`
+5. Require verification evidence before archive
+
+## What SSD-Core Adds
+
+SSD-Core is not another agent runtime. It adds a stable repository contract:
+
+- `.sdd/specs/` for living behavior
+- `.sdd/changes/<change-id>/` for active deltas
+- `.sdd/archive/` for completed changes
+- profile-driven rigor without forcing heavy ceremony
+- evidence-gated completion criteria
+
+## Repository Layout
 
 ```text
 .sdd/
@@ -45,12 +109,9 @@ docs/
   adapter-contract-v0.1.md
   adapter-authoring-v0.1.md
   sdd-validator-v0.1.md
-
-scripts/
-  sdd.py
 ```
 
-The current reference utility supports:
+## Command Guide
 
 ```text
 ssd-core version
@@ -59,27 +120,21 @@ ssd-core init --root <path>
 ssd-core status
 ssd-core new <change-id> --profile <profile> --title "Human intent"
 ssd-core check <change-id>
-ssd-core archive <change-id>
 ssd-core sync-specs <change-id>
+ssd-core archive <change-id>
 ```
 
-## Core Ideas
+## Lifecycle
 
-### Markdown First
+```text
+explore -> propose -> specify -> design -> task -> implement -> verify -> critique -> archive
+```
 
-Every important artifact is readable, editable Markdown. Machines can validate it, but humans can still understand it without a dashboard.
+Core rule: no archive without verification evidence.
 
-### Agent Agnostic
+## Profiles
 
-The protocol defines artifacts and lifecycle contracts. Adapters decide how to integrate with a concrete agent or IDE.
-
-### Operating System Agnostic
-
-Protocol paths are logical repository paths. Adapters translate paths, commands, permissions, and process execution to the host platform.
-
-### Profile Driven
-
-Not every change needs enterprise ceremony. SSD-Core ships profiles for:
+SSD-Core ships six profiles:
 
 - `quick`
 - `standard`
@@ -88,171 +143,19 @@ Not every change needs enterprise ceremony. SSD-Core ships profiles for:
 - `enterprise`
 - `research`
 
-### Evidence Gated
+Use the smallest safe profile for the change type.
 
-A checked task is not proof. Verification artifacts must record what was checked, how it was checked, the outcome, and known gaps.
+## Adapters
 
-## Quick Start
+### Reference Adapter
 
-Install from this repository with `uv`:
+The generic baseline is:
 
-```text
-uv tool install .
-```
+- `.sdd/adapters/generic-markdown.json`
 
-Or install the npm wrapper:
+Use it as the portable contract for any human or tool workflow that can read/write repo artifacts.
 
-```text
-npm install -g .
-```
-
-The npm package still runs the same Python core. It requires Python 3.11+ on `PATH`, or `SSD_CORE_PYTHON` pointing at a Python executable.
-
-For editable Python development:
-
-```text
-uv pip install -e .
-```
-
-Check the CLI:
-
-```text
-ssd-core version
-```
-
-Initialize SSD-Core in another repository:
-
-```text
-ssd-core init --root path-to-repository
-```
-
-Validate the SDD foundation:
-
-```text
-ssd-core validate
-```
-
-Create a change:
-
-```text
-ssd-core new add-search --profile standard --title "Add search"
-```
-
-Inspect current state:
-
-```text
-ssd-core status
-```
-
-Check whether the change is ready to archive:
-
-```text
-ssd-core check add-search
-```
-
-Archive only after verification is complete:
-
-```text
-ssd-core archive add-search
-```
-
-Sync a verified delta into living specs:
-
-```text
-ssd-core sync-specs add-search
-```
-
-## The Lifecycle
-
-```text
-explore -> propose -> specify -> design -> task -> implement -> verify -> critique -> archive
-```
-
-Profiles can compress or expand that lifecycle. The core rule stays the same: a change needs clear intent, traceable tasks, and verification evidence before it closes.
-
-## Example Change Layout
-
-```text
-.sdd/changes/add-search/
-  proposal.md
-  delta-spec.md
-  design.md
-  tasks.md
-  verification.md
-  archive.md
-```
-
-Each artifact has frontmatter so future tooling can validate and route work without parsing prose blindly.
-
-## Status
-
-Current maturity: **v0.1 production candidate**.
-
-Solid:
-
-- protocol v0.1
-- constitution
-- agnostic agent catalog
-- agnostic skill catalog
-- profile set
-- agent and skill schemas
-- generic markdown adapter manifest
-- end-to-end standard-profile example
-- end-to-end lifecycle test
-- adapter contract
-- concrete adapter manifests for Codex, Claude Code, Gemini CLI, OpenCode, and Qwen Code
-- installable portable reference CLI
-- packaged wheel with bundled templates
-- npm wrapper package for Node-based teams
-- init/validate/status/new/check/sync-specs/archive commands
-- conservative living spec sync
-- release checklist and production readiness notes
-- portable release check script
-- CI workflow for Windows, macOS, and Linux
-
-Still early:
-
-- full JSON Schema validation
-- semantic living spec merge
-- runtime command wrappers for adapter manifests
-- richer templates per profile
-
-## Design Principles
-
-- DRY: avoid duplicated logic, duplicated contracts, and duplicated workflow decisions.
-- KISS: choose the simplest implementation that preserves correctness and traceability.
-- YAGNI: do not add mechanisms before they are required by real workflow pressure.
-- SOLID: prefer composable, focused modules with clear responsibilities and stable interfaces.
-- GRASP: assign responsibilities to the components that own the information and behavior.
-- LoD: minimize coupling; each module should talk only to immediate collaborators.
-- Keep the core small.
-- Push tool-specific behavior into adapters.
-- Prefer files over chat memory.
-- Prefer evidence over confidence.
-- Make the smallest workflow that preserves quality.
-- Never archive incomplete work quietly.
-
-## Agents And Skills
-
-SSD-Core separates roles from runtimes.
-
-Agents live under `.sdd/agents/`. They define portable role contracts for orchestration, exploration, specification, architecture, planning, implementation, verification, critique, and archiving.
-
-Skills live under `.sdd/skills/`. They define portable workflow capabilities for proposing, specifying, designing, tasking, implementing, verifying, critiquing, syncing specs, and archiving.
-
-Adapters can turn these Markdown contracts into prompts, commands, menus, subagents, jobs, or scripts. The protocol does not require any specific agent platform.
-
-## Reference Adapter
-
-SSD-Core ships a generic Markdown adapter manifest at `.sdd/adapters/generic-markdown.json`.
-
-This adapter requires no specific agent runtime. It defines the baseline contract for any tool or human workflow that can read and write repository artifacts.
-
-See [docs/adapter-authoring-v0.1.md](docs/adapter-authoring-v0.1.md) to build a concrete adapter.
-
-## Runtime Adapters
-
-SSD-Core also ships concrete capability manifests for commonly used coding-agent runtimes:
+### Concrete Capability Manifests Included in v0.1
 
 - Codex: `.sdd/adapters/codex.json`
 - Claude Code: `.sdd/adapters/claude-code.json`
@@ -260,40 +163,78 @@ SSD-Core also ships concrete capability manifests for commonly used coding-agent
 - OpenCode: `.sdd/adapters/opencode.json`
 - Qwen Code: `.sdd/adapters/qwen-code.json`
 
-See [docs/adapters-v0.1.md](docs/adapters-v0.1.md) for the mapping model and adapter boundaries.
+v0.1 includes manifests, not executable runtime wrappers.
+
+See [docs/adapters-v0.1.md](docs/adapters-v0.1.md) and [docs/adapter-authoring-v0.1.md](docs/adapter-authoring-v0.1.md).
+
+## Principles
+
+- DRY: avoid duplicated logic, contracts, and workflow decisions
+- KISS: choose the simplest design that preserves correctness
+- YAGNI: do not ship speculative mechanisms
+- SOLID: prefer focused modules and stable boundaries
+- GRASP: place responsibilities where knowledge already lives
+- LoD: minimize coupling to immediate collaborators
+
+Plus SSD-Core specifics:
+
+- keep the core small
+- push runtime specifics into adapters
+- prefer files over chat memory
+- prefer evidence over confidence
+- never archive incomplete work quietly
 
 ## Production Readiness
 
-The v0.1 production bar is conservative: the CLI must build as a wheel, install in an isolated environment, initialize a new repository from packaged templates, validate that repository, and keep source checkout compatibility through `python scripts/sdd.py`.
+For v0.1, readiness means the project can:
 
-See [docs/production-readiness-v0.1.md](docs/production-readiness-v0.1.md) for supported guarantees, non-goals, and release checks.
+- install as wheel and npm wrapper
+- initialize from packaged templates
+- validate artifacts consistently
+- run cross-platform CI checks
 
-Run the complete local release gate:
+Run the full release gate locally:
 
 ```text
 python scripts/release_check.py
 ```
 
-See the one-week closure checklist at [docs/superpowers/plans/2026-05-03-v0.1-closure-week.md](docs/superpowers/plans/2026-05-03-v0.1-closure-week.md).
-See the closure record at [docs/superpowers/plans/2026-05-03-v0.1-closure-record.md](docs/superpowers/plans/2026-05-03-v0.1-closure-record.md).
+See:
 
-Publish the npm package from GitHub Actions by running the `Publish npm` workflow or pushing a `v*` tag. The workflow expects the repository secret `NPM_REPOSITORY_TOKEN`.
+- [docs/production-readiness-v0.1.md](docs/production-readiness-v0.1.md)
+- [docs/superpowers/plans/2026-05-03-v0.1-closure-week.md](docs/superpowers/plans/2026-05-03-v0.1-closure-week.md)
+- [docs/superpowers/plans/2026-05-03-v0.1-closure-record.md](docs/superpowers/plans/2026-05-03-v0.1-closure-record.md)
+
+## Current Status
+
+Current release: `v0.1.0`
+
+Solid in v0.1:
+
+- protocol, constitution, profiles, schemas
+- concrete adapter manifests for major runtimes
+- dependency-free reference CLI
+- packaged templates and docs
+- cross-platform release check and CI
+
+Deferred to future versions:
+
+- deeper artifact JSON Schema validation
+- semantic living spec merge
+- executable runtime command wrappers for adapters
+- richer profile templates
 
 ## Influences And Attribution
 
-SSD-Core is a new framework, but it intentionally distills lessons from existing MIT-licensed SDD and agent workflow projects:
+SSD-Core is original work, informed by MIT-licensed workflow ideas from:
 
-- [GitHub Spec Kit](https://github.com/github/spec-kit) — constitution-driven SDD, phase gates, and traceability.
-- [OpenSpec](https://github.com/Fission-AI/OpenSpec) — change folders, delta specs, and archive/sync workflow.
-- [Agent Teams Lite](https://github.com/Gentleman-Programming/agent-teams-lite) — lightweight orchestrator patterns and phase-specific agents.
-- [BMAD-METHOD](https://github.com/bmad-code-org/BMAD-METHOD) — adaptive workflows, specialist roles, and scale-aware delivery.
+- [GitHub Spec Kit](https://github.com/github/spec-kit)
+- [OpenSpec](https://github.com/Fission-AI/OpenSpec)
+- [Agent Teams Lite](https://github.com/Gentleman-Programming/agent-teams-lite)
+- [BMAD-METHOD](https://github.com/bmad-code-org/BMAD-METHOD)
 
-All four projects are MIT licensed as of the license files checked on 2026-05-03. See [NOTICE.md](NOTICE.md) for attribution details.
-
-SSD-Core does not claim endorsement by these projects and does not use their trademarks as product names. BMAD-related names are trademarks of BMad Code, LLC; they are referenced only for attribution.
+Attribution and compatibility notes are in [NOTICE.md](NOTICE.md).
 
 ## License
 
 SSD-Core is released under the [MIT License](LICENSE).
-
-Third-party inspiration and license notices are tracked in [NOTICE.md](NOTICE.md).
