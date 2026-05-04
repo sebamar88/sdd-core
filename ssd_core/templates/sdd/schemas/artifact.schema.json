@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sdd-core.local/schemas/artifact.schema.json",
+  "title": "SDD-Core Artifact Metadata",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["schema", "artifact", "status"],
+  "properties": {
+    "schema": {
+      "type": "string",
+      "pattern": "^sdd\\.[a-z0-9-]+\\.v[0-9]+$"
+    },
+    "artifact": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "change_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "profile": {
+      "type": "string",
+      "enum": ["quick", "standard", "bugfix", "refactor", "enterprise", "research"]
+    },
+    "status": {
+      "type": "string",
+      "enum": ["draft", "ready", "active", "in_progress", "blocked", "verified", "archived"]
+    },
+    "created": {
+      "type": "string",
+      "format": "date"
+    },
+    "updated": {
+      "type": "string",
+      "format": "date"
+    },
+    "version": {
+      "type": ["integer", "string"]
+    }
+  }
+}

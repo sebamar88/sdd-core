@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sdd-core.local/schemas/phase-result.schema.json",
+  "title": "SDD-Core Phase Result Envelope",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["schema", "change_id", "phase", "status", "reads", "writes", "next"],
+  "properties": {
+    "schema": {
+      "const": "sdd.phase-result.v1"
+    },
+    "change_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "phase": {
+      "type": "string",
+      "enum": ["explore", "propose", "specify", "design", "task", "implement", "verify", "critique", "archive"]
+    },
+    "status": {
+      "type": "string",
+      "enum": ["complete", "partial", "blocked", "failed"]
+    },
+    "reads": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "writes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "next": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["explore", "propose", "specify", "design", "task", "implement", "verify", "critique", "archive", "done"]
+      },
+      "uniqueItems": true
+    },
+    "risk": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "unknown"]
+    },
+    "blocking_issues": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "next_actions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "enum": ["partial", "blocked", "failed"]
+          }
+        },
+        "required": ["status"]
+      },
+      "then": {
+        "required": ["next_actions"],
+        "properties": {
+          "next_actions": {
+            "minItems": 1
+          }
+        }
+      }
+    }
+  ]
+}

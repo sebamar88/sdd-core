@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sdd-core.local/schemas/adapter-capabilities.schema.json",
+  "title": "SDD-Core Adapter Capabilities",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["schema", "adapter", "version", "profiles", "agents", "skills", "verification", "state"],
+  "properties": {
+    "schema": {
+      "const": "sdd.adapter-capabilities.v1"
+    },
+    "adapter": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "version": {
+      "type": "string"
+    },
+    "profiles": {
+      "type": "object"
+    },
+    "agents": {
+      "type": "object"
+    },
+    "skills": {
+      "type": "object"
+    },
+    "verification": {
+      "type": "object"
+    },
+    "state": {
+      "type": "object"
+    }
+  }
+}

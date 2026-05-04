@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sdd-core.local/schemas/agent.schema.json",
+  "title": "SDD-Core Agent Contract Metadata",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["schema", "artifact", "role", "status"],
+  "properties": {
+    "schema": {
+      "const": "sdd.agent.v1"
+    },
+    "artifact": {
+      "const": "agent"
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "orchestrator",
+        "explorer",
+        "specifier",
+        "architect",
+        "planner",
+        "implementer",
+        "verifier",
+        "critic",
+        "archivist"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": ["draft", "active", "blocked", "archived"]
+    },
+    "created": {
+      "type": "string",
+      "format": "date"
+    },
+    "updated": {
+      "type": "string",
+      "format": "date"
+    }
+  }
+}

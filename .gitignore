@@ -3,6 +3,9 @@ __pycache__/
 *.pyc
 .tmp-tests/
 .tmp-install/
+.tmp-venv*/
+.tmp-prod-smoke*/
+.tmp-wheel/
 build/
 dist/
 *.egg-info/

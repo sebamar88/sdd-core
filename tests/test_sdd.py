@@ -2,21 +2,26 @@ from __future__ import annotations
 
 import contextlib
 import io
-import sys
 import uuid
 import unittest
+from importlib.resources import files
 from pathlib import Path
 
+from ssd_core import cli as sdd
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(REPO_ROOT / "scripts"))
-
-import sdd  # noqa: E402
 
 
 class SddToolingTests(unittest.TestCase):
     def test_version_is_defined(self) -> None:
         self.assertEqual(sdd.VERSION, "0.1.0")
+
+    def test_packaged_templates_are_present(self) -> None:
+        template_root = files("ssd_core").joinpath("templates")
+
+        self.assertTrue(template_root.joinpath("sdd", "constitution.md").is_file())
+        self.assertTrue(template_root.joinpath("sdd", "adapters", "generic-markdown.json").is_file())
+        self.assertTrue(template_root.joinpath("docs", "sdd-core-protocol-v0.1.md").is_file())
 
     def test_standard_profile_artifacts_are_defined(self) -> None:
         self.assertEqual(

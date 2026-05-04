@@ -25,7 +25,10 @@ classifiers = [
 dependencies = []
 
 [project.scripts]
-ssd-core = "scripts.sdd:main"
+ssd-core = "ssd_core.cli:main"
 
 [tool.setuptools.packages.find]
-include = ["scripts*"]
+include = ["ssd_core*"]
+
+[tool.setuptools.package-data]
+ssd_core = ["templates/**/*"]

@@ -54,13 +54,13 @@ The current reference utility supports:
 
 ```text
 ssd-core version
-python scripts/sdd.py validate
-python scripts/sdd.py init --root <path>
-python scripts/sdd.py status
-python scripts/sdd.py new <change-id> --profile <profile> --title "Human intent"
-python scripts/sdd.py check <change-id>
-python scripts/sdd.py archive <change-id>
-python scripts/sdd.py sync-specs <change-id>
+ssd-core validate
+ssd-core init --root <path>
+ssd-core status
+ssd-core new <change-id> --profile <profile> --title "Human intent"
+ssd-core check <change-id>
+ssd-core archive <change-id>
+ssd-core sync-specs <change-id>
 ```
 
 ## Core Ideas
@@ -172,7 +172,7 @@ Each artifact has frontmatter so future tooling can validate and route work with
 
 ## Status
 
-Current maturity: **foundation / early reference tooling**.
+Current maturity: **v0.1 production candidate**.
 
 Solid:
 
@@ -187,14 +187,15 @@ Solid:
 - end-to-end lifecycle test
 - adapter contract
 - installable portable reference CLI
+- packaged wheel with bundled templates
 - init/validate/status/new/check/sync-specs/archive commands
 - conservative living spec sync
+- release checklist and production readiness notes
 
 Still early:
 
 - full JSON Schema validation
 - semantic living spec merge
-- packaged CLI
 - concrete adapters
 - richer templates per profile
 
@@ -224,6 +225,12 @@ SSD-Core ships a generic Markdown adapter manifest at `.sdd/adapters/generic-mar
 This adapter requires no specific agent runtime. It defines the baseline contract for any tool or human workflow that can read and write repository artifacts.
 
 See [docs/adapter-authoring-v0.1.md](docs/adapter-authoring-v0.1.md) to build a concrete adapter.
+
+## Production Readiness
+
+The v0.1 production bar is conservative: the CLI must build as a wheel, install in an isolated environment, initialize a new repository from packaged templates, validate that repository, and keep source checkout compatibility through `python scripts/sdd.py`.
+
+See [docs/production-readiness-v0.1.md](docs/production-readiness-v0.1.md) for supported guarantees, non-goals, and release checks.
 
 ## Influences And Attribution
 
