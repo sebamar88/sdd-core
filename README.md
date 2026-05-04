@@ -94,10 +94,24 @@ A checked task is not proof. Verification artifacts must record what was checked
 
 ## Quick Start
 
-Install from this repository:
+Install from this repository with `uv`:
 
 ```text
-python -m pip install -e .
+uv tool install .
+```
+
+Or install the npm wrapper:
+
+```text
+npm install -g .
+```
+
+The npm package still runs the same Python core. It requires Python 3.11+ on `PATH`, or `SSD_CORE_PYTHON` pointing at a Python executable.
+
+For editable Python development:
+
+```text
+uv pip install -e .
 ```
 
 Check the CLI:
@@ -189,6 +203,7 @@ Solid:
 - concrete adapter manifests for Codex, Claude Code, Gemini CLI, OpenCode, and Qwen Code
 - installable portable reference CLI
 - packaged wheel with bundled templates
+- npm wrapper package for Node-based teams
 - init/validate/status/new/check/sync-specs/archive commands
 - conservative living spec sync
 - release checklist and production readiness notes

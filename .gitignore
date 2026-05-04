@@ -9,6 +9,9 @@ __pycache__/
 .tmp-prod-smoke*/
 .tmp-wheel/
 .tmp-release-check/
+.tmp-npm*/
+node_modules/
+npm-debug.log*
 build/
 dist/
 *.egg-info/

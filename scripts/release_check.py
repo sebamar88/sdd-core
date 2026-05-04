@@ -5,6 +5,7 @@ import os
 import shutil
 import subprocess
 import sys
+import tarfile
 import venv
 from pathlib import Path
 
@@ -13,6 +14,9 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 TEMP_ROOT = REPO_ROOT / ".tmp-release-check"
 SMOKE_ROOT = TEMP_ROOT / "smoke-repo"
 VENV_ROOT = TEMP_ROOT / "venv"
+NPM_PACK_ROOT = TEMP_ROOT / "npm-pack"
+NPM_PROJECT_ROOT = TEMP_ROOT / "npm-project"
+NPM_SMOKE_ROOT = TEMP_ROOT / "npm-smoke-repo"
 
 
 def run(command: list[str], *, cwd: Path = REPO_ROOT) -> None:
@@ -22,6 +26,20 @@ def run(command: list[str], *, cwd: Path = REPO_ROOT) -> None:
     env["PYTHONUNBUFFERED"] = "1"
     print(f"$ {printable}", flush=True)
     subprocess.run(command, cwd=cwd, check=True, env=env)
+
+
+def run_capture(command: list[str], *, cwd: Path = REPO_ROOT) -> str:
+    printable = " ".join(command)
+    env = os.environ.copy()
+    env["PIP_DISABLE_PIP_VERSION_CHECK"] = "1"
+    env["PYTHONUNBUFFERED"] = "1"
+    print(f"$ {printable}", flush=True)
+    completed = subprocess.run(command, cwd=cwd, check=True, env=env, text=True, capture_output=True)
+    if completed.stdout:
+        print(completed.stdout, end="")
+    if completed.stderr:
+        print(completed.stderr, end="", file=sys.stderr)
+    return completed.stdout
 
 
 def venv_python() -> Path:
@@ -34,6 +52,14 @@ def venv_cli() -> Path:
     if os.name == "nt":
         return VENV_ROOT / "Scripts" / "ssd-core.exe"
     return VENV_ROOT / "bin" / "ssd-core"
+
+
+def npm_command() -> str | None:
+    return shutil.which("npm")
+
+
+def node_command() -> str | None:
+    return shutil.which("node")
 
 
 def clean_temp() -> None:
@@ -72,6 +98,34 @@ def release_check(*, keep_temp: bool) -> None:
             raise AssertionError(f"packaged readiness doc was not initialized: {readiness_doc}")
         if not adapters_doc.is_file():
             raise AssertionError(f"packaged adapters doc was not initialized: {adapters_doc}")
+
+        npm = npm_command()
+        node = node_command()
+        if npm is None or node is None:
+            print("npm wrapper check skipped: npm and node are not both available on PATH.")
+        else:
+            NPM_PACK_ROOT.mkdir(parents=True)
+            NPM_PROJECT_ROOT.mkdir(parents=True)
+            pack_output = run_capture([npm, "pack", "--pack-destination", str(NPM_PACK_ROOT)])
+            tarball_name = pack_output.strip().splitlines()[-1]
+            tarball_path = NPM_PACK_ROOT / tarball_name
+            if not tarball_path.is_file():
+                raise AssertionError(f"npm pack did not create tarball: {tarball_path}")
+            with tarfile.open(tarball_path, "r:gz") as package:
+                names = package.getnames()
+                forbidden = [name for name in names if "__pycache__" in name or name.endswith(".pyc") or name.startswith("package/docs/superpowers/")]
+                if forbidden:
+                    raise AssertionError(f"npm package contains non-product files: {forbidden}")
+
+            run([npm, "install", str(tarball_path), "--prefix", str(NPM_PROJECT_ROOT)])
+            npm_launcher = NPM_PROJECT_ROOT / "node_modules" / "ssd-core" / "bin" / "ssd-core.js"
+            run([node, str(npm_launcher), "version"])
+            run([node, str(npm_launcher), "init", "--root", str(NPM_SMOKE_ROOT)])
+            run([node, str(npm_launcher), "validate", "--root", str(NPM_SMOKE_ROOT)])
+
+            npm_adapter = NPM_SMOKE_ROOT / ".sdd" / "adapters" / "codex.json"
+            if not npm_adapter.is_file():
+                raise AssertionError(f"npm wrapper did not initialize packaged adapters: {npm_adapter}")
 
         print("Release check passed.")
     finally:

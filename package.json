@@ -1,0 +1,32 @@
+{
+  "name": "ssd-core",
+  "version": "0.1.0",
+  "description": "Portable spec-driven development framework for any agent and operating system.",
+  "license": "MIT",
+  "bin": {
+    "ssd-core": "bin/ssd-core.js"
+  },
+  "files": [
+    "bin/",
+    "ssd_core/",
+    "scripts/sdd.py",
+    "README.md",
+    "LICENSE",
+    "NOTICE.md",
+    "CHANGELOG.md",
+    "docs/",
+    "!**/__pycache__/**",
+    "!**/*.pyc",
+    "!docs/superpowers/**"
+  ],
+  "keywords": [
+    "sdd",
+    "spec-driven-development",
+    "agents",
+    "ai",
+    "workflow"
+  ],
+  "engines": {
+    "node": ">=18"
+  }
+}

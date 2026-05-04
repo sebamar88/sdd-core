@@ -16,6 +16,7 @@ It does not mean the protocol is finished. It means the current framework can be
 
 - The reference CLI is dependency-free at runtime.
 - The CLI installs as the `ssd-core` command from a Python wheel.
+- The npm wrapper exposes the same `ssd-core` command for Node-based teams and delegates to the Python core.
 - Packaged installs include the required `.sdd` templates and protocol docs.
 - Source checkouts remain usable through `python scripts/sdd.py`.
 - `ssd-core init` does not overwrite existing foundation files.
@@ -42,7 +43,7 @@ Run these checks before tagging or publishing v0.1.x:
 python scripts/release_check.py
 ```
 
-The release check runs source validation, tests, package dry-run, isolated wheel install, installed CLI smoke tests, and packaged template checks.
+The release check runs source validation, tests, package dry-run, isolated wheel install, installed CLI smoke tests, npm wrapper smoke tests when Node/npm are available, and packaged template checks.
 
 For manual debugging, keep the generated temporary repository and virtual environment:
 
