@@ -96,8 +96,11 @@ The validator checks:
 - required schema files
 - Markdown frontmatter presence
 - common frontmatter keys
+- `created` and `updated` ISO date validation
 - artifact status values
 - profile names
+- change artifact consistency (`change_id`, `profile`, and `artifact` name)
+- living spec consistency (`change_id` and `artifact` name)
 - JSON syntax for schema files
 - required top-level JSON Schema metadata
 - protocol pointer to the canonical v0.1 spec

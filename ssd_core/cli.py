@@ -134,6 +134,7 @@ ARTIFACT_STATUSES = {
 
 SCHEMA_PATTERN = re.compile(r"^sdd\.[a-z0-9-]+\.v[0-9]+$")
 TOKEN_PATTERN = re.compile(r"^[a-z0-9][a-z0-9-]*$")
+DATE_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 OPEN_TASK_PATTERN = re.compile(r"^\s*-\s+\[\s\]", re.MULTILINE)
 
 
@@ -437,7 +438,16 @@ def validate_markdown_frontmatter(root: Path) -> list[Finding]:
             findings.append(Finding("error", path, error))
             continue
 
-        for key in ["schema", "artifact", "status"]:
+        try:
+            relative = path.relative_to(sdd_root)
+        except ValueError:
+            relative = path
+
+        is_change_artifact = len(relative.parts) >= 3 and relative.parts[0] == "changes"
+        is_example_artifact = len(relative.parts) >= 3 and relative.parts[0] == "examples"
+        is_living_spec = len(relative.parts) >= 3 and relative.parts[0] == "specs"
+
+        for key in ["schema", "artifact", "status", "created", "updated"]:
             if key not in metadata:
                 findings.append(Finding("error", path, f"frontmatter missing required key: {key}"))
 
@@ -453,9 +463,74 @@ def validate_markdown_frontmatter(root: Path) -> list[Finding]:
         if status and status not in ARTIFACT_STATUSES:
             findings.append(Finding("error", path, f"status value is not valid: {status}"))
 
+        for date_key in ["created", "updated"]:
+            date_value = metadata.get(date_key)
+            if not date_value:
+                continue
+            if not DATE_PATTERN.match(date_value):
+                findings.append(Finding("error", path, f"{date_key} must use YYYY-MM-DD format"))
+                continue
+            try:
+                date.fromisoformat(date_value)
+            except ValueError:
+                findings.append(Finding("error", path, f"{date_key} is not a valid calendar date"))
+
         profile = metadata.get("profile")
         if profile and profile not in REQUIRED_PROFILES:
             findings.append(Finding("error", path, f"profile value is not recognized: {profile}"))
+
+        if is_change_artifact or is_example_artifact:
+            change_id = metadata.get("change_id")
+            expected_change_id = relative.parts[1]
+            if not change_id:
+                findings.append(Finding("error", path, "frontmatter missing required key: change_id"))
+            elif change_id != expected_change_id:
+                findings.append(
+                    Finding(
+                        "error",
+                        path,
+                        f"change_id does not match directory name: expected {expected_change_id}",
+                    )
+                )
+
+            if not profile:
+                findings.append(Finding("error", path, "frontmatter missing required key: profile"))
+
+            expected_artifact = path.stem
+            if artifact and artifact != expected_artifact:
+                findings.append(
+                    Finding(
+                        "error",
+                        path,
+                        f"artifact value must match filename stem: expected {expected_artifact}",
+                    )
+                )
+
+        if is_living_spec:
+            change_id = metadata.get("change_id")
+            expected_change_id = relative.parts[1]
+            if not change_id:
+                findings.append(Finding("error", path, "frontmatter missing required key: change_id"))
+            elif change_id != expected_change_id:
+                findings.append(
+                    Finding(
+                        "error",
+                        path,
+                        f"change_id does not match directory name: expected {expected_change_id}",
+                    )
+                )
+
+            expected_artifact = path.stem
+            if path.name == "spec.md":
+                expected_artifact = "spec"
+            if artifact and artifact != expected_artifact:
+                findings.append(
+                    Finding(
+                        "error",
+                        path,
+                        f"artifact value must match filename stem: expected {expected_artifact}",
+                    )
+                )
 
     return findings
 

@@ -275,6 +275,7 @@ python scripts/release_check.py
 ```
 
 See the one-week closure checklist at [docs/superpowers/plans/2026-05-03-v0.1-closure-week.md](docs/superpowers/plans/2026-05-03-v0.1-closure-week.md).
+See the closure record at [docs/superpowers/plans/2026-05-03-v0.1-closure-record.md](docs/superpowers/plans/2026-05-03-v0.1-closure-record.md).
 
 Publish the npm package from GitHub Actions by running the `Publish npm` workflow or pushing a `v*` tag. The workflow expects the repository secret `NPM_REPOSITORY_TOKEN`.
 

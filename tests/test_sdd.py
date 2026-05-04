@@ -15,6 +15,10 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 class SddToolingTests(unittest.TestCase):
+    @staticmethod
+    def finding_messages(findings: list[sdd.Finding]) -> list[str]:
+        return [finding.message for finding in findings]
+
     def test_version_is_defined(self) -> None:
         self.assertEqual(sdd.VERSION, "0.1.0")
 
@@ -107,6 +111,97 @@ class SddToolingTests(unittest.TestCase):
         self.assertTrue((root / ".sdd" / "constitution.md").is_file())
         self.assertTrue((root / ".sdd" / "adapters" / "generic-markdown.json").is_file())
         self.assertEqual(sdd.validate(root), [])
+
+    def test_validate_requires_change_id_to_match_change_directory(self) -> None:
+        root = REPO_ROOT / ".tmp-tests" / f"change-id-mismatch-{uuid.uuid4().hex}"
+
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(sdd.init_project(root), [])
+            self.assertEqual(sdd.create_change(root, "demo-change", "standard", "Demo"), [])
+
+        proposal_path = root / ".sdd" / "changes" / "demo-change" / "proposal.md"
+        proposal_text = proposal_path.read_text(encoding="utf-8")
+        proposal_path.write_text(proposal_text.replace("change_id: demo-change", "change_id: wrong-id"), encoding="utf-8")
+
+        findings = sdd.validate(root)
+        messages = self.finding_messages(findings)
+        self.assertTrue(any("change_id does not match directory name" in message for message in messages))
+
+    def test_validate_requires_profile_in_change_artifacts(self) -> None:
+        root = REPO_ROOT / ".tmp-tests" / f"missing-profile-{uuid.uuid4().hex}"
+
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(sdd.init_project(root), [])
+            self.assertEqual(sdd.create_change(root, "demo-change", "standard", "Demo"), [])
+
+        proposal_path = root / ".sdd" / "changes" / "demo-change" / "proposal.md"
+        proposal_text = proposal_path.read_text(encoding="utf-8")
+        proposal_path.write_text(proposal_text.replace("profile: standard\n", ""), encoding="utf-8")
+
+        findings = sdd.validate(root)
+        messages = self.finding_messages(findings)
+        self.assertIn("frontmatter missing required key: profile", messages)
+
+    def test_validate_rejects_artifact_name_mismatch(self) -> None:
+        root = REPO_ROOT / ".tmp-tests" / f"artifact-mismatch-{uuid.uuid4().hex}"
+
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(sdd.init_project(root), [])
+            self.assertEqual(sdd.create_change(root, "demo-change", "standard", "Demo"), [])
+
+        proposal_path = root / ".sdd" / "changes" / "demo-change" / "proposal.md"
+        proposal_text = proposal_path.read_text(encoding="utf-8")
+        proposal_path.write_text(proposal_text.replace("artifact: proposal", "artifact: design"), encoding="utf-8")
+
+        findings = sdd.validate(root)
+        messages = self.finding_messages(findings)
+        self.assertTrue(any("artifact value must match filename stem" in message for message in messages))
+
+    def test_validate_rejects_invalid_created_date(self) -> None:
+        root = REPO_ROOT / ".tmp-tests" / f"invalid-date-{uuid.uuid4().hex}"
+
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(sdd.init_project(root), [])
+
+        constitution_path = root / ".sdd" / "constitution.md"
+        constitution_text = constitution_path.read_text(encoding="utf-8")
+        constitution_path.write_text(constitution_text.replace("created: 2026-05-03", "created: 2026-13-40"), encoding="utf-8")
+
+        findings = sdd.validate(root)
+        messages = self.finding_messages(findings)
+        self.assertIn("created is not a valid calendar date", messages)
+
+    def test_validate_requires_living_spec_change_id_match(self) -> None:
+        root = REPO_ROOT / ".tmp-tests" / f"spec-change-id-mismatch-{uuid.uuid4().hex}"
+
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(sdd.init_project(root), [])
+
+        spec_dir = root / ".sdd" / "specs" / "demo-change"
+        spec_dir.mkdir(parents=True)
+        spec_path = spec_dir / "spec.md"
+        spec_path.write_text(
+            "\n".join(
+                [
+                    "---",
+                    "schema: sdd.living-spec.v1",
+                    "artifact: spec",
+                    "change_id: wrong-id",
+                    "status: active",
+                    "created: 2026-05-03",
+                    "updated: 2026-05-03",
+                    "---",
+                    "",
+                    "# Demo Spec",
+                    "",
+                ]
+            ),
+            encoding="utf-8",
+        )
+
+        findings = sdd.validate(root)
+        messages = self.finding_messages(findings)
+        self.assertTrue(any("change_id does not match directory name" in message for message in messages))
 
     def test_check_change_rejects_missing_change(self) -> None:
         findings = sdd.check_change(REPO_ROOT, "missing-change")
