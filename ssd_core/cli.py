@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import ClassVar, Iterable, Protocol
 
 
-VERSION = "0.3.0"
+VERSION = "0.4.0"
 
 REQUIRED_DIRECTORIES = [
     ".sdd",
