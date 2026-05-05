@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.8.0 - 2026-05-06
+
+- Added `ssd-core evidence <change_id>`: displays all recorded execution evidence — command, exit code, duration, timestamp, output log path, and SHA-256 checksum integrity status. Lets humans and CI systems inspect exactly what ran before a change was marked verified.
+- Added `ssd-core pr-check <change_id>`: outputs a Markdown governance report ready to paste into a GitHub/GitLab PR description. Shows phase, profile, evidence summary with a hash chain, and exits 0 only when the change is safe to merge. Exits 1 if the change is missing passing evidence.
+- Added `ssd-core auto --verify-with <cmd>` flag: when `--loop` reaches the verify phase, runs the supplied command automatically instead of pausing for human input. Enables a fully unattended lifecycle: `ssd-core auto my-fix --loop --verify-with 'pytest -x'`. May be repeated for multiple commands.
+- Added `ssd-core verify --commands-file <path>`: reads verification commands from a plain text file, one per line. Blank lines and lines starting with `#` are ignored. Composes with repeated `--command` flags.
+- Added `ssd-core demo --fast`: 30-second anti-hallucination proof. Creates a change in a temp directory, simulates an agent claiming completion three times, shows each governance block with the exact reason, then closes the change with real evidence. Designed as a CI-friendly "wow in 30 seconds" demo.
+- Added visual phase pipeline to `ssd-core phase` output: a horizontal `○ propose → ◎ task → ◉ verify → ○ archive` line shows where the change sits in the lifecycle at a glance.
+- Added `print_evidence` and `print_pr_check` to the public Python API.
+- Bumped `print_auto` public signature: new `verify_commands: list[str] | None` keyword argument mirrors the `--verify-with` CLI flag.
+
 ## 0.7.0 - 2026-05-05
 
 - Added `ssd-core verify --discover`: auto-detects the project's test runner (pytest, npm test, cargo test, go test, make test) and runs it as the verification command. The discovered command is shown in `ssd-core auto` guidance when the workflow reaches the verify phase.

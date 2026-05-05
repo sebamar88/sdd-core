@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import ClassVar, Iterable, Protocol
 
 
-VERSION = "0.7.0"
+VERSION = "0.8.0"
 
 
 # ── Terminal color helpers ───────────────────────────────────────────────────
@@ -260,6 +260,22 @@ class WorkflowPhase(str, Enum):
     ARCHIVE = "archive"
     ARCHIVED = "archived"
     BLOCKED = "blocked"
+
+
+# Ordered phase list used for pipeline visualisation.  Phases not in this list
+# (BLOCKED, NOT_STARTED) are intentionally excluded from the linear pipeline.
+_PIPELINE_PHASES: list[WorkflowPhase] = [
+    WorkflowPhase.PROPOSE,
+    WorkflowPhase.SPECIFY,
+    WorkflowPhase.DESIGN,
+    WorkflowPhase.TASK,
+    WorkflowPhase.VERIFY,
+    WorkflowPhase.CRITIQUE,
+    WorkflowPhase.ARCHIVE_RECORD,
+    WorkflowPhase.SYNC_SPECS,
+    WorkflowPhase.ARCHIVE,
+    WorkflowPhase.ARCHIVED,
+]
 
 
 WORKFLOW_STATE_SCHEMA = "sdd.state.v1"
@@ -2575,6 +2591,7 @@ def print_phase(root: Path, change_id: str) -> int:
         drift = "ahead" if declared_order > artifact_order else "behind"
         print(f"  drift     : declared is {_yellow(drift)} of artifact phase")
 
+    print(f"  pipeline  : {_phase_pipeline_str(state.phase, state.profile)}")
     print(f"  next      : {state.next_action}")
     return 0
 
@@ -2701,7 +2718,203 @@ def print_findings(root: Path, findings: Iterable[Finding]) -> int:
     return 1 if has_error else 0
 
 
-# ── CI template ──────────────────────────────────────────────────────────────
+# \u2500\u2500 Phase pipeline + evidence + pr-check \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+
+def _phase_pipeline_str(current: "WorkflowPhase", profile: str) -> str:
+    """Return a one-line colored pipeline showing completed/current/pending phases."""
+    profile_artifacts = set(PROFILE_ARTIFACTS.get(profile, []))
+    optional_phase_map = {
+        WorkflowPhase.SPECIFY:        "delta-spec.md",
+        WorkflowPhase.DESIGN:         "design.md",
+        WorkflowPhase.CRITIQUE:       "critique.md",
+        WorkflowPhase.ARCHIVE_RECORD: "archive.md",
+        WorkflowPhase.SYNC_SPECS:     "delta-spec.md",
+    }
+
+    visible = []
+    for phase in _PIPELINE_PHASES:
+        req = optional_phase_map.get(phase)
+        if req is None or req in profile_artifacts:
+            visible.append(phase)
+
+    current_order = PHASE_ORDER.get(current, 0)
+    parts = []
+    for phase in visible:
+        order = PHASE_ORDER.get(phase, 0)
+        if phase == current:
+            parts.append(_yellow("\u25c9 " + phase.value))
+        elif phase == WorkflowPhase.ARCHIVED and current == WorkflowPhase.ARCHIVED:
+            parts.append(_green("\u2714 " + phase.value))
+        elif order < current_order:
+            parts.append(_green("\u2714 ") + _dim(phase.value))
+        else:
+            parts.append(_dim("\u25cb " + phase.value))
+    return " \u2192 ".join(parts)
+
+
+def print_evidence(root: "Path", change_id: str) -> int:
+    """Print a human-readable summary of execution evidence records for *change_id*."""
+    findings = validate_change_id(change_id)
+    if findings:
+        return print_findings(root, findings)
+
+    records, ev_findings = execution_evidence_records(root, change_id)
+    ev_path = execution_evidence_path(root, change_id)
+
+    try:
+        rel_registry = ev_path.relative_to(root).as_posix()
+    except ValueError:
+        rel_registry = str(ev_path)
+
+    print(_bold(f"SDD evidence: {change_id}"))
+    print(f"  registry : {_dim(rel_registry)}")
+
+    if ev_findings:
+        print("  records  : 0")
+        print("")
+        for finding in ev_findings:
+            print(_yellow("\u26a0") + " " + finding.format(root))
+        return 1
+
+    print(f"  records  : {len(records)}")
+    if not records:
+        print(f"  {_dim('(no execution evidence recorded yet)')}")
+        return 0
+
+    print("")
+    for idx, record in enumerate(records, start=1):
+        evidence_id = str(record.get("id", "?"))[:8]
+        cmd = str(record.get("command", "?"))
+        exit_code = record.get("exit_code", "?")
+        passed = record.get("passed", False)
+        recorded_at = str(record.get("recorded_at", "?"))
+        dur = record.get("duration_seconds")
+        log_val = record.get("log_path")
+        checksum_val = str(record.get("output_checksum", ""))
+        checksum_short = checksum_val[:16] + "..." if len(checksum_val) > 16 else checksum_val
+
+        passed_str = _green("\u2714 passed") if passed else _red("\u2717 failed")
+        print(f"  {_bold(str(idx))}. {_dim(evidence_id)}")
+        print(f"     command  : {_bold(cmd)}")
+        print(f"     result   : {passed_str}  (exit {exit_code})")
+        if dur is not None:
+            print(f"     duration : {dur}s")
+        print(f"     recorded : {_dim(recorded_at)}")
+
+        if isinstance(log_val, str):
+            log_path = root / log_val
+            if log_path.is_file():
+                current_cksum = hashlib.sha256(
+                    log_path.read_text(encoding="utf-8").encode("utf-8")
+                ).hexdigest()
+                integrity = (
+                    _green("\u2714 ok") if current_cksum == checksum_val else _red("\u2717 tampered")
+                )
+                try:
+                    rel_log = log_path.relative_to(root).as_posix()
+                except ValueError:
+                    rel_log = log_val
+                print(f"     log      : {_dim(rel_log)}")
+                print(f"     checksum : sha256:{_dim(checksum_short)}  [{integrity}]")
+            else:
+                print(f"     log      : {_red('MISSING')} {log_val}")
+        print("")
+
+    passing = sum(1 for r in records if r.get("passed"))
+    failing = len(records) - passing
+    summary_str = _green(f"{passing} passed") + (", " + _red(f"{failing} failed") if failing else "")
+    print(f"  Summary: {summary_str}")
+    return 0 if all(r.get("passed") for r in records) else 1
+
+
+def print_pr_check(root: "Path", change_id: str) -> int:
+    """Output a Markdown governance report ready to paste into a PR description."""
+    findings = validate_change_id(change_id)
+    if findings:
+        return print_findings(root, findings)
+
+    state = workflow_state(root, change_id)
+    records, _ = execution_evidence_records(root, change_id)
+
+    icon = _PHASE_ICON.get(state.phase.value, " ")
+    phase_colored = (
+        _green(icon + " " + state.phase.value) if state.phase == WorkflowPhase.ARCHIVED
+        else _red(icon + " " + state.phase.value) if state.is_blocked
+        else _cyan(icon + " " + state.phase.value)
+    )
+
+    print(_bold(f"SDD governance report: {change_id}"))
+    print("")
+
+    completed_phases = [
+        p.value for p in _PIPELINE_PHASES
+        if PHASE_ORDER.get(p, 0) <= PHASE_ORDER.get(state.phase, 0)
+    ]
+    md_lines = [
+        "```",
+        "## SDD Governance Report",
+        "",
+        f"**Change:** `{change_id}`  **Profile:** {state.profile}  **Phase:** {state.phase.value}",
+        f"**Pipeline:** {' -> '.join(completed_phases)}",
+        "",
+    ]
+
+    if records:
+        md_lines += [
+            "### Execution Evidence",
+            "",
+            "| # | Command | Result | Duration | SHA-256 |",
+            "| - | ------- | ------ | -------- | ------- |",
+        ]
+        for idx, record in enumerate(records, start=1):
+            cmd = str(record.get("command", "?"))
+            exit_code = record.get("exit_code", "?")
+            passed = record.get("passed", False)
+            dur = record.get("duration_seconds", "-")
+            cksum = str(record.get("output_checksum", ""))[:12]
+            result_cell = "pass" if passed else "FAIL"
+            md_lines.append(
+                f"| {idx} | `{cmd}` | {result_cell} (exit {exit_code}) | {dur}s | `{cksum}...` |"
+            )
+        md_lines.append("")
+    else:
+        md_lines += ["*No execution evidence recorded.*", ""]
+
+    md_lines += [
+        f"> Generated by SSD-Core v{VERSION}",
+        "> Artifact checksum in `.sdd/state.json`",
+        "```",
+    ]
+
+    for line in md_lines:
+        print(line)
+
+    print("")
+    print(f"  phase     : {phase_colored}")
+    print(f"  pipeline  : {_phase_pipeline_str(state.phase, state.profile)}")
+
+    if state.is_blocked:
+        print(f"  {_red(chr(0x2717) + ' BLOCKED \u2014 resolve findings before merging')}")
+        for f in state.findings:
+            print(f"    {_red(chr(0x2717))} {f.format(root)}")
+        return 1
+    if state.phase not in {WorkflowPhase.VERIFY, WorkflowPhase.ARCHIVED}:
+        print(f"  {_yellow(chr(0x26a0) + '  change is not yet verified \u2014 do not merge')}")
+        return 1
+    if not records:
+        print(
+            f"  {_yellow(chr(0x26a0) + '  no execution evidence \u2014 run: ssd-core verify --command or --discover')}"
+        )
+        return 1
+    if not all(r.get("passed") for r in records):
+        print(f"  {_red(chr(0x2717) + '  execution evidence contains failures \u2014 resolve before merging')}")
+        return 1
+    print(f"  {_green(chr(0x2714) + '  governance check passed \u2014 safe to merge')}")
+    return 0
+
+
+# \u2500\u2500 CI template ──────────────────────────────────────────────────────────────
 
 _GITHUB_ACTIONS_TEMPLATE = """\
 name: SDD Governance Guard
@@ -2774,6 +2987,100 @@ def write_ci_template(root: Path, template_type: str) -> list[Finding]:
     print(f"  path    : {relative_dest}")
     print(f"  next    : commit this file, then enable CI in your repository")
     return []
+
+
+def run_fast_demo() -> int:
+    """30-second proof: an agent says 'done' — governance says 'prove it'.
+
+    Demonstrates the core value proposition:
+      1. Change is created and the agent jumps straight to claiming it's done.
+      2. Every premature archive attempt is blocked with a clear reason.
+      3. Only after real evidence is recorded does archive succeed.
+
+    Exit 0 on success, 1 on first failure.
+    """
+    import tempfile
+
+    change_id = "agent-claims-done"
+    profile = "quick"
+
+    def line(msg: str) -> None:
+        print(msg)
+
+    with tempfile.TemporaryDirectory(prefix="sdd-fast-") as tmpdir:
+        root = Path(tmpdir)
+
+        print(_bold("SDD-Core — Proof: agent can't lie about being done"))
+        print(_dim("=" * 54))
+        print("")
+        print("Scenario: an AI agent finishes coding and calls 'ssd-core archive'.")
+        print("Watch what happens at each attempt.")
+        print("")
+
+        # Setup silently
+        init_project(root)
+        create_change(root, change_id, profile, "Agent claims to be done")
+
+        # Attempt 1: archive before doing any work
+        line(_bold("\nAttempt 1") + "  Agent calls: " + _cyan(f"ssd-core archive {change_id}"))
+        findings = archive_change(root, change_id)
+        if not findings:
+            print(_red("UNEXPECTED: archive should have been blocked"))
+            return 1
+        print(_red("  \u2717 BLOCKED:") + " " + findings[0].message)
+
+        # Attempt 2: fill proposal, advance to task, try to archive
+        change_dir = change_directory(root, change_id)
+        proposal_path = change_dir / "proposal.md"
+        text = proposal_path.read_text(encoding="utf-8")
+        text = set_frontmatter_value(text, "status", "ready")
+        text = text.replace("- Define the intended change.", "- Return 401 on bad credentials.")
+        proposal_path.write_text(text, encoding="utf-8")
+
+        tasks_path = change_dir / "tasks.md"
+        text = tasks_path.read_text(encoding="utf-8")
+        text = text.replace("- [ ]", "- [x]")
+        text = set_frontmatter_value(text, "status", "ready")
+        tasks_path.write_text(text, encoding="utf-8")
+
+        transition_workflow(root, change_id, WorkflowPhase.PROPOSE)
+        transition_workflow(root, change_id, WorkflowPhase.TASK)
+
+        line(_bold("\nAttempt 2") + "  Agent marks tasks done, calls: " + _cyan(f"ssd-core archive {change_id}"))
+        findings = archive_change(root, change_id)
+        if not findings:
+            print(_red("UNEXPECTED: archive should have been blocked"))
+            return 1
+        print(_red("  \u2717 BLOCKED:") + " " + findings[0].message)
+
+        # Attempt 3: verify with real command
+        line(_bold("\nAttempt 3") + "  Agent provides evidence: " + _cyan(f"ssd-core verify {change_id} --command 'echo auth-tests-pass'"))
+        v_findings = verify_change(root, change_id, ["echo auth-tests-pass"])
+        if v_findings:
+            for f in v_findings:
+                print(_red("  \u2717") + " " + f.format(root))
+            return 1
+        print(_green("  \u2714 Evidence recorded") + " — command output checksummed and stored")
+
+        # Now advance and archive via auto --loop
+        line(_bold("\nAttempt 4") + "  Engine closes it: " + _cyan(f"ssd-core auto {change_id} --loop"))
+        rc = print_auto(root, change_id, loop=True)
+        if rc != 0:
+            return 1
+
+        print("")
+        print(_dim("=" * 54))
+        print(_bold("Result:"))
+        print(f"  {_red('\u2717')} 3 blocked attempts  — the agent could not skip governance")
+        print(f"  {_green('\u2714')} 1 successful archive — only after checksummed proof")
+        print("")
+        print(_bold("What was enforced:"))
+        print(f"  phase order       : archive required verify first")
+        print(f"  evidence quality  : verification.md could not contain placeholders")
+        print(f"  execution proof   : output log + sha256 stored before phase recorded")
+        print("")
+        print(f"  {_cyan('ssd-core evidence ' + change_id)}  ← inspect what was recorded")
+    return 0
 
 
 def run_demo() -> int:
@@ -3072,13 +3379,19 @@ def _print_auto_step(root: Path, change_id: str, result: "AutoStep") -> int:
     return 0
 
 
-def print_auto(root: Path, change_id: str, *, loop: bool = False) -> int:
+def print_auto(
+    root: Path,
+    change_id: str,
+    *,
+    loop: bool = False,
+    verify_commands: list[str] | None = None,
+) -> int:
     """Advance *change_id* and print the result.
 
-    When *loop* is False (default), executes one step and returns.
-    When *loop* is True, keeps advancing as long as the engine can execute
-    automatically, stopping at the first phase that requires human input,
-    at completion, or at a blocking finding.
+    When *loop* is False, executes one step and returns.
+    When *loop* is True, keeps advancing automatically.  When *verify_commands*
+    is also set, the loop will run ``ssd-core verify`` automatically instead of
+    pausing at the verify phase — enabling a fully unattended lifecycle.
     """
     if not loop:
         return _print_auto_step(root, change_id, _auto_advance(root, change_id))
@@ -3089,15 +3402,32 @@ def print_auto(root: Path, change_id: str, *, loop: bool = False) -> int:
     result = _auto_advance(root, change_id)  # ensure defined
     while True:
         result = _auto_advance(root, change_id)
+        # Auto-verify: when the loop pauses at VERIFY and --verify-with was supplied.
+        if (
+            result.needs_human_work
+            and result.step.phase == WorkflowPhase.VERIFY
+            and verify_commands
+        ):
+            print(_cyan("\u2192") + f" Auto-verifying with: {_bold(', '.join(verify_commands))}")
+            v_findings = verify_change(root, change_id, verify_commands)
+            if v_findings:
+                print(_red("\u2717") + " " + _bold("verify failed:"))
+                for f in v_findings:
+                    print("  " + _red("\u2717") + " " + f.format(root))
+                print(_dim("-" * 44))
+                print(f"Auto loop stopped. {_bold(str(steps_taken))} step(s) executed.")
+                return 1
+            steps_taken += 1
+            print(_green("\u2714") + f" Verification recorded: {_bold(change_id)}")
+            continue  # let the loop advance past verify
+
         rc = _print_auto_step(root, change_id, result)
         if result.executed_command:
             steps_taken += 1
-        # Stop when blocked, complete, human work needed, or nothing executed.
         if rc != 0 or result.step.is_complete or result.needs_human_work or not result.executed_command:
             break
     print(_dim("-" * 44))
-    steps_label = _bold(str(steps_taken))
-    print(f"Auto loop finished. {steps_label} step(s) executed.")
+    print(f"Auto loop finished. {_bold(str(steps_taken))} step(s) executed.")
     return 0 if not result.step.is_blocked else 1
 
 
@@ -3114,9 +3444,14 @@ def build_parser() -> argparse.ArgumentParser:
 
     subcommands.add_parser("version", help="show SSD-Core version")
 
-    subcommands.add_parser(
+    demo_parser = subcommands.add_parser(
         "demo",
         help="run an annotated Golden Path walkthrough in a temporary directory",
+    )
+    demo_parser.add_argument(
+        "--fast",
+        action="store_true",
+        help="run the 30-second anti-hallucination proof instead of the full walkthrough",
     )
 
     auto_parser = subcommands.add_parser(
@@ -3128,6 +3463,13 @@ def build_parser() -> argparse.ArgumentParser:
         "--loop",
         action="store_true",
         help="drain all auto-executable steps in sequence; stop at the first phase requiring human input",
+    )
+    auto_parser.add_argument(
+        "--verify-with",
+        action="append",
+        default=[],
+        metavar="CMD",
+        help="verification command to run automatically when the loop reaches the verify phase; may be repeated",
     )
     auto_parser.add_argument(
         "--root",
@@ -3269,6 +3611,34 @@ def build_parser() -> argparse.ArgumentParser:
         help="per-command timeout in seconds; defaults to 120",
     )
     verify_parser.add_argument(
+        "--commands-file",
+        default=None,
+        metavar="PATH",
+        help="path to a text file containing one verification command per line; blank lines and lines starting with '#' are ignored",
+    )
+    verify_parser.add_argument(
+        "--root",
+        default=".",
+        help="repository root; defaults to the current directory",
+    )
+
+    evidence_parser = subcommands.add_parser(
+        "evidence",
+        help="show execution evidence records for a change",
+    )
+    evidence_parser.add_argument("change_id", help="kebab-case change identifier")
+    evidence_parser.add_argument(
+        "--root",
+        default=".",
+        help="repository root; defaults to the current directory",
+    )
+
+    pr_check_parser = subcommands.add_parser(
+        "pr-check",
+        help="output a PR-ready governance report and exit 0 only if the change is safe to merge",
+    )
+    pr_check_parser.add_argument("change_id", help="kebab-case change identifier")
+    pr_check_parser.add_argument(
         "--root",
         default=".",
         help="repository root; defaults to the current directory",
@@ -3343,11 +3713,13 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.command == "demo":
+        if getattr(args, "fast", False):
+            return run_fast_demo()
         return run_demo()
 
     if args.command == "auto":
         root = Path(args.root).resolve()
-        return print_auto(root, args.change_id, loop=args.loop)
+        return print_auto(root, args.change_id, loop=args.loop, verify_commands=args.verify_with or None)
 
     if args.command == "init":
         root = Path(args.root).resolve()
@@ -3410,6 +3782,15 @@ def main(argv: list[str] | None = None) -> int:
                 print(_cyan("→") + f" Discovered test runner: {_bold(discovered)}")
                 if discovered not in commands:
                     commands.append(discovered)
+        if args.commands_file:
+            cf_path = Path(args.commands_file)
+            if not cf_path.is_file():
+                print(_red("\u2717") + f" --commands-file not found: {cf_path}")
+                return 1
+            for raw in cf_path.read_text(encoding="utf-8").splitlines():
+                stripped = raw.strip()
+                if stripped and not stripped.startswith("#") and stripped not in commands:
+                    commands.append(stripped)
         findings = verify_change(
             root,
             args.change_id,
@@ -3447,6 +3828,14 @@ def main(argv: list[str] | None = None) -> int:
         if findings:
             return print_findings(root, findings)
         return 0
+
+    if args.command == "evidence":
+        root = Path(args.root).resolve()
+        return print_evidence(root, args.change_id)
+
+    if args.command == "pr-check":
+        root = Path(args.root).resolve()
+        return print_pr_check(root, args.change_id)
 
     parser.error(f"unsupported command: {args.command}")
     return 2
