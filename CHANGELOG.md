@@ -2,7 +2,17 @@
 
 ## Unreleased
 
-## 0.4.0 - 2026-05-05
+## 0.5.0 - 2026-05-05
+
+- Added `ssd-core auto <change>` command: advisor + executor in one call. Executes transitions, `sync-specs`, and `archive` automatically when artifacts are ready. For human-work phases (proposal, tasks, verification, etc.) prints the exact file path to edit and blocks until re-run. Exit 0 always unless the workflow is blocked.
+- Added `WorkflowEngine.execute_next(change_id)` returning `AutoStep`: the programmatic equivalent of `ssd-core auto`, designed for agent-driven loops. Returns `needs_human_work=True` when a file edit is required before the engine can advance further.
+- Added `AutoStep` frozen dataclass: `executed_command`, `step` (EngineStep), `is_blocked`, `is_complete`, `needs_human_work`.
+- Added `_PHASE_ARTIFACT_FILE` mapping every human-work phase to its canonical artifact filename.
+- Added `_auto_advance()` internal function: single-step advance logic shared by `WorkflowEngine.execute_next()` and `ssd-core auto`.
+- Exported `AutoStep` from the `ssd_core` package public API.
+- Updated package description to: "AI development governance engine — prevent hallucinated completion and vanishing intent in agent-assisted software teams."
+
+
 
 - Added `ssd-core demo` command: annotated Golden Path walkthrough in a temporary directory. Runs the full `init → new → task → verify → archive` cycle with real SDD-Core logic, checksummed evidence, and automatic cleanup. Exit 0 on success, 1 on first failure.
 - Added `EngineStep` frozen dataclass as the structured return type for agent-driven execution loops: `phase`, `next_action`, `suggested_command`, `allowed_commands`, `blocking_findings`, `is_blocked`, `is_complete`.

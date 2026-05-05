@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ssd-core"
-version = "0.4.0"
-description = "Portable spec-driven development framework for any agent and operating system."
+version = "0.5.0"
+description = "AI development governance engine — prevent hallucinated completion and vanishing intent in agent-assisted software teams."
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"

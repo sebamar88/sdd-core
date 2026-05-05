@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import ClassVar, Iterable, Protocol
 
 
-VERSION = "0.4.0"
+VERSION = "0.5.0"
 
 REQUIRED_DIRECTORIES = [
     ".sdd",
@@ -1431,6 +1431,17 @@ COMMAND_GATES: dict[str, tuple[WorkflowPhase, bool]] = {
     "archive":    (WorkflowPhase.ARCHIVE,    True),
 }
 
+# Maps human-work phases to the artifact file that needs editing.
+# Used by `ssd-core auto` to tell the user exactly which file to open.
+_PHASE_ARTIFACT_FILE: dict[WorkflowPhase, str] = {
+    WorkflowPhase.PROPOSE:        "proposal.md",
+    WorkflowPhase.SPECIFY:        "delta-spec.md",
+    WorkflowPhase.DESIGN:         "design.md",
+    WorkflowPhase.TASK:           "tasks.md",
+    WorkflowPhase.CRITIQUE:       "critique.md",
+    WorkflowPhase.ARCHIVE_RECORD: "archive.md",
+}
+
 
 def transition_workflow(root: Path, change_id: str, target_phase: WorkflowPhase) -> WorkflowState:
     findings = validate_change_id(change_id)
@@ -2109,6 +2120,44 @@ class EngineStep:
         return self.phase == WorkflowPhase.ARCHIVED
 
 
+@dataclass(frozen=True)
+class AutoStep:
+    """Return type for ``WorkflowEngine.execute_next()`` and ``ssd-core auto``.
+
+    A single call to ``execute_next()`` either advances the workflow one step
+    (recording a transition, running sync-specs, or archiving) or returns
+    guidance on the human work that must happen first.
+
+    - ``executed_command`` — the command that was run; ``None`` when human work
+      is needed or the workflow is already complete / blocked
+    - ``step`` — the current ``EngineStep`` reflecting state *after* any
+      execution; inspect ``step.phase``, ``step.next_action``, and
+      ``step.blocking_findings`` for context
+
+    Properties:
+
+    - ``is_blocked`` — workflow is blocked; see ``step.blocking_findings``
+    - ``is_complete`` — change is archived; nothing left to do
+    - ``needs_human_work`` — engine ran what it could; a file edit is required
+      before the next ``execute_next()`` call can advance further
+    """
+
+    executed_command: str | None
+    step: EngineStep
+
+    @property
+    def is_blocked(self) -> bool:
+        return self.step.is_blocked
+
+    @property
+    def is_complete(self) -> bool:
+        return self.step.is_complete
+
+    @property
+    def needs_human_work(self) -> bool:
+        return not self.is_blocked and not self.is_complete and self.executed_command is None
+
+
 class WorkflowEngine:
     """Declarative workflow engine.
 
@@ -2202,6 +2251,25 @@ class WorkflowEngine:
         if command == "archive":
             return archive_change(self.root, change_id)
         return [Finding("error", None, f"no executor registered for command: {command}")]
+
+    def execute_next(self, change_id: str) -> "AutoStep":
+        """Advance the workflow one step automatically.
+
+        Executes the next engine-driveable action (a phase transition,
+        ``sync-specs``, or ``archive``) when artifacts are ready.  For phases
+        that require human file edits (proposal, delta-spec, tasks, etc.), no
+        command is executed — the returned ``AutoStep.needs_human_work`` is
+        ``True`` and ``AutoStep.step.next_action`` describes what to do.
+
+        Designed for agent-driven loops::
+
+            step = engine.execute_next("my-change")
+            while not step.is_complete and not step.is_blocked:
+                if step.needs_human_work:
+                    agent_edit_file(step.step.next_action)
+                step = engine.execute_next("my-change")
+        """
+        return _auto_advance(self.root, change_id)
 
 
 def guard_repository(
@@ -2632,6 +2700,118 @@ def run_demo() -> int:
     return 0
 
 
+def _auto_advance(root: Path, change_id: str) -> "AutoStep":
+    """Advance the workflow one step automatically.
+
+    Executes exactly one engine-driveable action when artifacts are ready:
+    - A phase transition (when the declared phase is behind the artifact phase).
+    - ``sync-specs`` when the change is at ``SYNC_SPECS``.
+    - ``archive`` when the change is at ``ARCHIVE``.
+
+    For phases that require human file edits, no command is executed and the
+    returned ``AutoStep.needs_human_work`` is ``True``.
+
+    This function is called by ``WorkflowEngine.execute_next()`` and
+    ``ssd-core auto``.  It intentionally does ONE thing per call and returns;
+    callers re-invoke to continue advancing.
+    """
+    engine = WorkflowEngine(root)
+
+    def current_step() -> "EngineStep":
+        return engine.next_step(change_id)
+
+    state = workflow_state(root, change_id)
+
+    # Terminal and gate states — nothing to execute.
+    if state.is_blocked or state.phase == WorkflowPhase.ARCHIVED or state.phase == WorkflowPhase.NOT_STARTED:
+        return AutoStep(executed_command=None, step=current_step())
+
+    # Direct execute: SYNC_SPECS.
+    if state.phase == WorkflowPhase.SYNC_SPECS:
+        findings = sync_specs(root, change_id)
+        cmd = f"sync-specs {change_id}"
+        return AutoStep(executed_command=None if findings else cmd, step=current_step())
+
+    # Direct execute: ARCHIVE.
+    if state.phase == WorkflowPhase.ARCHIVE:
+        findings = archive_change(root, change_id)
+        cmd = f"archive {change_id}"
+        return AutoStep(executed_command=None if findings else cmd, step=current_step())
+
+    # Catch-up: artifact phase is ahead of the declared state.json phase.
+    artifact_phase = infer_phase_from_artifacts(root, change_id)
+    if PHASE_ORDER.get(artifact_phase, 0) > PHASE_ORDER.get(state.phase, 0):
+        # Find the best (highest-order) transition reachable from the current
+        # declared phase that is still within what artifacts support and is not
+        # restricted to a dedicated command.
+        eligible = ALLOWED_TRANSITIONS.get(state.phase, set()) - TRANSITION_RESTRICTED_PHASES
+        target = max(
+            (t for t in eligible if PHASE_ORDER.get(t, 0) <= PHASE_ORDER.get(artifact_phase, 0)),
+            key=lambda t: PHASE_ORDER.get(t, 0),
+            default=None,
+        )
+        if target == WorkflowPhase.SYNC_SPECS:
+            findings = sync_specs(root, change_id)
+            return AutoStep(executed_command=None if findings else f"sync-specs {change_id}", step=current_step())
+        if target == WorkflowPhase.ARCHIVE:
+            findings = archive_change(root, change_id)
+            return AutoStep(executed_command=None if findings else f"archive {change_id}", step=current_step())
+        if target is not None:
+            new_state = transition_workflow(root, change_id, target)
+            if new_state.is_blocked:
+                return AutoStep(executed_command=None, step=current_step())
+            return AutoStep(executed_command=f"transition {change_id} {target.value}", step=current_step())
+
+    # Human work needed — return guidance via the current EngineStep.
+    return AutoStep(executed_command=None, step=current_step())
+
+
+def print_auto(root: Path, change_id: str) -> int:
+    """Print the result of a single auto-advance step and return an exit code."""
+    result = _auto_advance(root, change_id)
+    step = result.step
+
+    if result.executed_command:
+        print(f"→ Executed: {result.executed_command}")
+
+    print(f"→ phase: {step.phase.value}")
+
+    if step.is_complete:
+        print("  Change is complete (archived).")
+        return 0
+
+    if step.phase == WorkflowPhase.NOT_STARTED:
+        print(f"  {step.next_action}")
+        return 0
+
+    if step.is_blocked:
+        print("  Blocked:")
+        for f in step.blocking_findings:
+            print(f"  {f.format(root)}")
+        return 1
+
+    if step.phase == WorkflowPhase.VERIFY:
+        change_dir = change_directory(root, change_id)
+        print(f"  {step.next_action}")
+        print(f"  Run: ssd-core verify {change_id} --command '<your-test-command>'")
+        return 0
+
+    artifact_file = _PHASE_ARTIFACT_FILE.get(step.phase)
+    if artifact_file:
+        change_dir = change_directory(root, change_id)
+        artifact_path = (change_dir / artifact_file).relative_to(root).as_posix()
+        print(f"  {step.next_action}")
+        print(f"  Edit: {artifact_path}")
+        print(f"  Re-run `ssd-core auto {change_id}` when done.")
+        return 0
+
+    # Fallback for any unhandled phase (e.g., SYNC_SPECS after a failed sync).
+    print(f"  {step.next_action}")
+    if step.suggested_command:
+        print(f"  Run: {step.suggested_command}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="SDD-Core utility")
     subcommands = parser.add_subparsers(dest="command", required=True)
@@ -2648,6 +2828,17 @@ def build_parser() -> argparse.ArgumentParser:
     subcommands.add_parser(
         "demo",
         help="run an annotated Golden Path walkthrough in a temporary directory",
+    )
+
+    auto_parser = subcommands.add_parser(
+        "auto",
+        help="advance a change one step: execute what is ready, or guide on what file to edit",
+    )
+    auto_parser.add_argument("change_id", help="kebab-case change identifier")
+    auto_parser.add_argument(
+        "--root",
+        default=".",
+        help="repository root; defaults to the current directory",
     )
 
     init_parser = subcommands.add_parser("init", help="initialize SDD-Core artifacts in a repository")
@@ -2838,6 +3029,10 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "demo":
         return run_demo()
+
+    if args.command == "auto":
+        root = Path(args.root).resolve()
+        return print_auto(root, args.change_id)
 
     if args.command == "init":
         root = Path(args.root).resolve()
