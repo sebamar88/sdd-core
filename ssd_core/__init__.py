@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from .cli import (
     COMMAND_GATES,
+    EngineStep,
     SDDWorkflow,
     VERSION,
     WorkflowEngine,
@@ -25,6 +26,7 @@ from .cli import (
 
 __all__ = [
     "COMMAND_GATES",
+    "EngineStep",
     "SDDWorkflow",
     "VERSION",
     "WorkflowEngine",

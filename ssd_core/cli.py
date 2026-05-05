@@ -2045,6 +2045,70 @@ class SDDWorkflow:
         return WorkflowResult(self.state(change_id), [])
 
 
+def _suggested_command(phase: WorkflowPhase, change_id: str) -> str | None:
+    """Return the canonical CLI command that advances *change_id* past *phase*.
+
+    Returns None for terminal or blocked phases where no single command applies.
+    """
+    mapping: dict[WorkflowPhase, str | None] = {
+        WorkflowPhase.NOT_STARTED:    f"ssd-core new {change_id} --profile <profile> --title '<intent>'",
+        WorkflowPhase.PROPOSE:        f"ssd-core transition {change_id} propose",
+        WorkflowPhase.SPECIFY:        f"ssd-core transition {change_id} specify",
+        WorkflowPhase.DESIGN:         f"ssd-core transition {change_id} design",
+        WorkflowPhase.TASK:           f"ssd-core transition {change_id} task",
+        WorkflowPhase.VERIFY:         f"ssd-core verify {change_id} --command '<test-command>'",
+        WorkflowPhase.CRITIQUE:       f"ssd-core transition {change_id} archive-record",
+        WorkflowPhase.ARCHIVE_RECORD: f"ssd-core transition {change_id} sync-specs",
+        WorkflowPhase.SYNC_SPECS:     f"ssd-core sync-specs {change_id}",
+        WorkflowPhase.ARCHIVE:        f"ssd-core archive {change_id}",
+        WorkflowPhase.ARCHIVED:       None,
+        WorkflowPhase.BLOCKED:        None,
+    }
+    return mapping.get(phase)
+
+
+@dataclass(frozen=True)
+class EngineStep:
+    """Structured description of the current workflow position, designed for agent consumption.
+
+    A single call to ``WorkflowEngine.next_step()`` gives an agent or IDE tool
+    everything it needs to advance the workflow without additional lookups:
+
+    - ``phase`` — where the change is now
+    - ``next_action`` — human-readable instruction for the *current* phase
+    - ``suggested_command`` — the CLI call that records completion of this phase
+    - ``allowed_commands`` — gated commands (verify / sync-specs / archive) that
+      would pass their gate right now; empty when none apply
+    - ``blocking_findings`` — non-empty only when the workflow is blocked
+
+    Usage::
+
+        engine = WorkflowEngine("my-repo")
+        step = engine.next_step("harden-login-rate-limit")
+        if step.is_blocked:
+            for f in step.blocking_findings:
+                print(f.message)
+        else:
+            agent_do_work(step.next_action)
+            # then run step.suggested_command
+    """
+
+    change_id: str
+    phase: WorkflowPhase
+    next_action: str
+    suggested_command: str | None
+    allowed_commands: list[str]
+    blocking_findings: list[Finding]
+
+    @property
+    def is_blocked(self) -> bool:
+        return bool(self.blocking_findings)
+
+    @property
+    def is_complete(self) -> bool:
+        return self.phase == WorkflowPhase.ARCHIVED
+
+
 class WorkflowEngine:
     """Declarative workflow engine.
 
@@ -2058,6 +2122,14 @@ class WorkflowEngine:
         findings = engine.guard("my-change", "archive")
         if findings:
             ...blocked...
+
+    Intended use for agent-driven loops:
+
+        step = engine.next_step("my-change")
+        while not step.is_complete and not step.is_blocked:
+            agent_do_work(step.next_action)
+            # run step.suggested_command, then:
+            step = engine.next_step("my-change")
     """
 
     COMMAND_GATES: ClassVar[dict[str, tuple[WorkflowPhase, bool]]] = COMMAND_GATES
@@ -2078,6 +2150,30 @@ class WorkflowEngine:
             command
             for command, (phase, checksum) in self.COMMAND_GATES.items()
             if not gate_command(self.root, change_id, phase, check_checksum=checksum)
+        )
+
+    def next_step(self, change_id: str) -> "EngineStep":
+        """Return a structured description of the current workflow position.
+
+        A single call gives an agent or IDE integration everything it needs:
+        the current phase, a human-readable next action, the CLI command that
+        advances the workflow, the gated commands that pass right now, and any
+        blocking findings.  Designed for agent-driven execution loops::
+
+            step = engine.next_step("my-change")
+            while not step.is_complete and not step.is_blocked:
+                agent_do_work(step.next_action)
+                run_command(step.suggested_command)
+                step = engine.next_step("my-change")
+        """
+        state = workflow_state(self.root, change_id)
+        return EngineStep(
+            change_id=change_id,
+            phase=state.phase,
+            next_action=state.next_action,
+            suggested_command=_suggested_command(state.phase, change_id),
+            allowed_commands=self.allowed_commands(change_id),
+            blocking_findings=list(state.findings),
         )
 
     def execute(
@@ -2394,6 +2490,148 @@ def print_findings(root: Path, findings: Iterable[Finding]) -> int:
     return 1 if has_error else 0
 
 
+def run_demo() -> int:
+    """Run an annotated Golden Path walkthrough in a temporary directory.
+
+    Executes the complete ``init → new → task → verify → archive`` flow against
+    a throw-away directory and cleans up afterwards.  Every step runs real
+    SDD-Core logic — no mocks, no shortcuts.
+
+    Exit code: 0 on success, 1 on first failure.
+    """
+    import tempfile
+
+    change_id = "demo-harden-login"
+    profile = "quick"
+    title = "Harden login error handling"
+    total = 7
+
+    def step(n: int, label: str) -> None:
+        print(f"\n── Step {n}/{total}: {label}")
+
+    def ok(msg: str) -> None:
+        print(f"   ✓ {msg}")
+
+    def fail(what: str, findings: list[Finding], root: Path) -> int:
+        print(f"   ✗ {what}")
+        for f in findings:
+            print(f"     {f.format(root)}")
+        return 1
+
+    with tempfile.TemporaryDirectory(prefix="sdd-demo-") as tmpdir:
+        root = Path(tmpdir)
+
+        print("SSD-Core Golden Path Demo")
+        print("=" * 48)
+        print(f"Temp root: {root}")
+        print()
+        print("Governance layer: AI-driven development with real evidence.")
+        print("Protocol: propose → task → verify → archive")
+
+        # ── Step 1: init ─────────────────────────────────────────────
+        step(1, "ssd-core init")
+        findings = init_project(root)
+        if findings:
+            return fail("init failed", findings, root)
+        ok("Initialized .sdd/ (adapters, agents, profiles, schemas, skills, specs)")
+
+        # ── Step 2: new change ────────────────────────────────────────
+        step(2, f"ssd-core new {change_id} --profile quick --title '{title}'")
+        findings = create_change(root, change_id, profile, title)
+        if findings:
+            return fail("create_change failed", findings, root)
+        ok(f"Created .sdd/changes/{change_id}/ (3 artifacts: proposal.md, tasks.md, verification.md)")
+        ok(f"Phase automatically recorded → propose (artifacts inferred)")
+
+        # ── Step 3: agent fills proposal.md ──────────────────────────
+        step(3, "Agent fills proposal.md → status: ready")
+        change_dir = change_directory(root, change_id)
+        proposal_path = change_dir / "proposal.md"
+        text = proposal_path.read_text(encoding="utf-8")
+        text = set_frontmatter_value(text, "status", "ready")
+        text = text.replace(
+            "- Define the intended change.",
+            "- Reject weak error codes; return structured error objects.",
+        )
+        proposal_path.write_text(text, encoding="utf-8")
+        ok("proposal.md: intent recorded, status → ready")
+
+        # ── Step 4: agent closes tasks.md ────────────────────────────
+        step(4, "Agent closes all tasks in tasks.md → status: ready")
+        tasks_path = change_dir / "tasks.md"
+        text = tasks_path.read_text(encoding="utf-8")
+        text = text.replace("- [ ]", "- [x]")
+        text = text.replace(
+            "T-001 Define the first concrete task.",
+            "T-001 Return structured error object on login failure.",
+        )
+        text = set_frontmatter_value(text, "status", "ready")
+        tasks_path.write_text(text, encoding="utf-8")
+        ok("tasks.md: T-001 closed, status → ready")
+
+        # ── Step 5: transition task ───────────────────────────────────
+        step(5, f"ssd-core transition {change_id} task")
+        state = transition_workflow(root, change_id, WorkflowPhase.TASK)
+        if state.is_blocked:
+            return fail("transition task failed", state.findings, root)
+        ok(f"Phase recorded in .sdd/state.json → {state.phase.value}")
+
+        # ── Step 6: verify with real command ──────────────────────────
+        step(6, f"ssd-core verify {change_id} --command 'echo all-tests-pass'")
+        findings = verify_change(root, change_id, ["echo all-tests-pass"])
+        if findings:
+            return fail("verify failed", findings, root)
+        ok("Command executed; output checksummed → .sdd/evidence/")
+        ok("verification.md updated automatically → status: verified")
+        ok("Phase recorded in .sdd/state.json → verify")
+
+        # ── Step 7: transition → archive → done ───────────────────────
+        step(7, f"ssd-core transition {change_id} archive  &&  ssd-core archive {change_id}")
+        state = transition_workflow(root, change_id, WorkflowPhase.ARCHIVE)
+        if state.is_blocked:
+            return fail("transition archive failed", state.findings, root)
+        ok(f"Phase recorded in .sdd/state.json → {state.phase.value}")
+
+        findings = archive_change(root, change_id)
+        if findings:
+            return fail("archive failed", findings, root)
+        archived = next(p for p in (root / ".sdd" / "archive").iterdir() if p.is_dir())
+        ok(f"Change closed → .sdd/archive/{archived.name}/")
+
+        # ── WorkflowEngine.next_step() bonus ──────────────────────────
+        print()
+        print("── WorkflowEngine.next_step() — single call for agent integrations:")
+        engine = WorkflowEngine(root)
+        engine_step = engine.next_step(change_id)
+        print(f"   phase:            {engine_step.phase.value}")
+        print(f"   is_complete:      {engine_step.is_complete}")
+        print(f"   is_blocked:       {engine_step.is_blocked}")
+        print(f"   allowed_commands: {engine_step.allowed_commands}")
+
+        # ── Final: validate ───────────────────────────────────────────
+        print()
+        print("── ssd-core validate")
+        val_findings = [f for f in validate(root) if f.severity == "error"]
+        if val_findings:
+            return fail("validate failed", val_findings, root)
+        ok("Repository governance passed — zero errors")
+
+    print()
+    print("=" * 48)
+    print("Demo complete. Temp directory cleaned up.")
+    print()
+    print("What just happened:")
+    print("  → Every phase transition was enforced by ALLOWED_TRANSITIONS")
+    print("  → Verification evidence was checksummed and stored under .sdd/evidence/")
+    print("  → state.json recorded the complete audit trail")
+    print("  → Archive required real evidence; fake completion would have been blocked")
+    print()
+    print("Next steps:")
+    print("  ssd-core init --root <your-repo>")
+    print("  ssd-core run my-change --profile standard --title 'My intent'")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="SDD-Core utility")
     subcommands = parser.add_subparsers(dest="command", required=True)
@@ -2406,6 +2644,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     subcommands.add_parser("version", help="show SSD-Core version")
+
+    subcommands.add_parser(
+        "demo",
+        help="run an annotated Golden Path walkthrough in a temporary directory",
+    )
 
     init_parser = subcommands.add_parser("init", help="initialize SDD-Core artifacts in a repository")
     init_parser.add_argument(
@@ -2592,6 +2835,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "version":
         print(f"SSD-Core {VERSION}")
         return 0
+
+    if args.command == "demo":
+        return run_demo()
 
     if args.command == "init":
         root = Path(args.root).resolve()
