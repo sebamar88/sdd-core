@@ -1,5 +1,13 @@
 from __future__ import annotations
 
-from .cli import VERSION
+from .cli import SDDWorkflow, VERSION, WorkflowFailure, WorkflowFailureKind, WorkflowPhase, WorkflowResult, WorkflowState
 
-__all__ = ["VERSION"]
+__all__ = [
+    "SDDWorkflow",
+    "VERSION",
+    "WorkflowFailure",
+    "WorkflowFailureKind",
+    "WorkflowPhase",
+    "WorkflowResult",
+    "WorkflowState",
+]

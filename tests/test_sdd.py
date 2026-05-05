@@ -9,6 +9,7 @@ import unittest
 from importlib.resources import files
 from pathlib import Path
 
+import ssd_core
 from ssd_core import cli as sdd
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -20,7 +21,7 @@ class SddToolingTests(unittest.TestCase):
         return [finding.message for finding in findings]
 
     def test_version_is_defined(self) -> None:
-        self.assertEqual(sdd.VERSION, "0.1.4")
+        self.assertEqual(sdd.VERSION, "0.1.5")
 
     def test_distribution_versions_match(self) -> None:
         pyproject = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
@@ -347,6 +348,68 @@ class SddToolingTests(unittest.TestCase):
 
         self.assertEqual(state.phase, sdd.WorkflowPhase.NOT_STARTED)
         self.assertFalse((root / ".sdd" / "changes" / "guard-login").exists())
+
+    def test_public_workflow_orchestrator_is_exported(self) -> None:
+        self.assertIs(ssd_core.SDDWorkflow, sdd.SDDWorkflow)
+        self.assertIs(ssd_core.WorkflowPhase, sdd.WorkflowPhase)
+        self.assertIs(ssd_core.WorkflowFailureKind, sdd.WorkflowFailureKind)
+
+    def test_sdd_workflow_blocks_sync_before_required_phase(self) -> None:
+        root = REPO_ROOT / ".tmp-tests" / f"workflow-api-block-{uuid.uuid4().hex}"
+
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(sdd.init_project(root), [])
+
+        workflow = sdd.SDDWorkflow(root)
+        with contextlib.redirect_stdout(io.StringIO()):
+            result = workflow.run("guard-login", profile="standard", title="Guard login")
+        self.assertTrue(result.ok)
+        self.assertEqual(result.state.phase, sdd.WorkflowPhase.PROPOSE)
+
+        blocked = workflow.sync_specs("guard-login")
+        self.assertFalse(blocked.ok)
+        self.assertEqual(blocked.state.phase, sdd.WorkflowPhase.BLOCKED)
+        self.assertEqual(blocked.failures[0].kind, sdd.WorkflowFailureKind.PHASE_ORDER)
+        self.assertIn("workflow phase must be sync-specs", blocked.failures[0].message)
+
+    def test_sdd_workflow_orchestrates_sync_and_archive_when_ready(self) -> None:
+        root = REPO_ROOT / ".tmp-tests" / f"workflow-api-e2e-{uuid.uuid4().hex}"
+        change_id = "guard-login"
+
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(sdd.init_project(root), [])
+
+        workflow = sdd.SDDWorkflow(root)
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertTrue(workflow.run(change_id, profile="standard", title="Guard login").ok)
+
+        change_dir = root / ".sdd" / "changes" / change_id
+        for filename in ["proposal.md", "delta-spec.md", "design.md", "tasks.md", "archive.md"]:
+            path = change_dir / filename
+            path.write_text(path.read_text(encoding="utf-8").replace("status: draft", "status: ready"), encoding="utf-8")
+
+        tasks_path = change_dir / "tasks.md"
+        tasks_path.write_text(tasks_path.read_text(encoding="utf-8").replace("- [ ]", "- [x]"), encoding="utf-8")
+
+        verification_path = change_dir / "verification.md"
+        verification_text = verification_path.read_text(encoding="utf-8")
+        verification_text = verification_text.replace("status: draft", "status: verified")
+        verification_text = verification_text.replace("pending verification evidence", "unit test evidence")
+        verification_text = verification_text.replace("not-run", "pass")
+        verification_path.write_text(verification_text, encoding="utf-8")
+
+        with contextlib.redirect_stdout(io.StringIO()):
+            synced = workflow.sync_specs(change_id)
+
+        self.assertTrue(synced.ok)
+        self.assertEqual(synced.state.phase, sdd.WorkflowPhase.ARCHIVE)
+
+        with contextlib.redirect_stdout(io.StringIO()):
+            archived = workflow.archive(change_id)
+
+        self.assertTrue(archived.ok)
+        self.assertEqual(archived.state.phase, sdd.WorkflowPhase.ARCHIVED)
+        self.assertFalse(change_dir.exists())
 
 
 if __name__ == "__main__":

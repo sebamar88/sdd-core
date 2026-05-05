@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.1.5 - 2026-05-05
+
+- Added `SDDWorkflow` as the importable strict orchestrator API for tools, adapters, and IDE integrations.
+- Added `WorkflowResult`, `WorkflowFailure`, and `WorkflowFailureKind` to make phase-order failures explicit instead of implicit findings only.
+- Documented real orchestrator usage in the README with importable Python code.
+
 ## 0.1.4 - 2026-05-05
 
 - Added `ssd-core run` as the workflow binding layer that creates or inspects a governed change and reports the enforced current phase.

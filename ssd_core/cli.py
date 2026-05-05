@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Iterable, Protocol
 
 
-VERSION = "0.1.4"
+VERSION = "0.1.5"
 
 REQUIRED_DIRECTORIES = [
     ".sdd",
@@ -197,6 +197,27 @@ class WorkflowPhase(str, Enum):
     BLOCKED = "blocked"
 
 
+class WorkflowFailureKind(str, Enum):
+    VALIDATION = "validation"
+    CREATION = "creation"
+    PHASE_ORDER = "phase-order"
+    COMMAND = "command"
+
+
+@dataclass(frozen=True)
+class WorkflowFailure:
+    kind: WorkflowFailureKind
+    message: str
+    path: Path | None = None
+
+    @classmethod
+    def from_finding(cls, kind: WorkflowFailureKind, finding: Finding) -> "WorkflowFailure":
+        return cls(kind, finding.message, finding.path)
+
+    def to_finding(self) -> Finding:
+        return Finding("error", self.path, self.message)
+
+
 @dataclass(frozen=True)
 class WorkflowState:
     change_id: str
@@ -208,6 +229,16 @@ class WorkflowState:
     @property
     def is_blocked(self) -> bool:
         return self.phase == WorkflowPhase.BLOCKED
+
+
+@dataclass(frozen=True)
+class WorkflowResult:
+    state: WorkflowState
+    failures: list[WorkflowFailure]
+
+    @property
+    def ok(self) -> bool:
+        return not self.failures and not self.state.is_blocked
 
 
 def logical_path(root: Path, value: str) -> Path:
@@ -1024,6 +1055,89 @@ def run_workflow(root: Path, change_id: str, profile: str, title: str | None, *,
             create_findings,
         )
     return workflow_state(root, change_id)
+
+
+class SDDWorkflow:
+    def __init__(self, root: Path | str) -> None:
+        self.root = Path(root).resolve()
+
+    def state(self, change_id: str) -> WorkflowState:
+        return workflow_state(self.root, change_id)
+
+    def run(
+        self,
+        change_id: str,
+        *,
+        profile: str = "standard",
+        title: str | None = None,
+        create: bool = True,
+    ) -> WorkflowResult:
+        state = run_workflow(self.root, change_id, profile, title, create=create)
+        failures = [
+            WorkflowFailure.from_finding(WorkflowFailureKind.VALIDATION, finding)
+            for finding in state.findings
+            if state.is_blocked
+        ]
+        return WorkflowResult(state, failures)
+
+    def require_phase(self, change_id: str, expected: WorkflowPhase) -> WorkflowResult:
+        state = self.state(change_id)
+        if state.phase == expected:
+            return WorkflowResult(state, [])
+
+        failure = WorkflowFailure(
+            WorkflowFailureKind.PHASE_ORDER,
+            f"workflow phase must be {expected.value}; current phase is {state.phase.value}",
+            change_directory(self.root, change_id),
+        )
+        blocked_state = WorkflowState(
+            change_id,
+            WorkflowPhase.BLOCKED,
+            state.profile,
+            state.next_action,
+            [failure.to_finding()],
+        )
+        return WorkflowResult(blocked_state, [failure])
+
+    def sync_specs(self, change_id: str) -> WorkflowResult:
+        required = self.require_phase(change_id, WorkflowPhase.SYNC_SPECS)
+        if not required.ok:
+            return required
+
+        findings = sync_specs(self.root, change_id)
+        if findings:
+            failures = [WorkflowFailure.from_finding(WorkflowFailureKind.COMMAND, finding) for finding in findings]
+            return WorkflowResult(
+                WorkflowState(
+                    change_id,
+                    WorkflowPhase.BLOCKED,
+                    required.state.profile,
+                    "Resolve sync-specs findings before continuing.",
+                    [failure.to_finding() for failure in failures],
+                ),
+                failures,
+            )
+        return WorkflowResult(self.state(change_id), [])
+
+    def archive(self, change_id: str) -> WorkflowResult:
+        required = self.require_phase(change_id, WorkflowPhase.ARCHIVE)
+        if not required.ok:
+            return required
+
+        findings = archive_change(self.root, change_id)
+        if findings:
+            failures = [WorkflowFailure.from_finding(WorkflowFailureKind.COMMAND, finding) for finding in findings]
+            return WorkflowResult(
+                WorkflowState(
+                    change_id,
+                    WorkflowPhase.BLOCKED,
+                    required.state.profile,
+                    "Resolve archive findings before continuing.",
+                    [failure.to_finding() for failure in failures],
+                ),
+                failures,
+            )
+        return WorkflowResult(self.state(change_id), [])
 
 
 def print_workflow(root: Path, state: WorkflowState) -> int:

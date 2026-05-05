@@ -152,6 +152,32 @@ SSD-Core is optimized for governance over convenience.
 
 Use SSD-Core when correctness and traceability matter more than a flashy one-command demo.
 
+## Real Orchestrator API
+
+The CLI is not the only binding layer. The Python core exposes a strict workflow object for tools, adapters, and IDE integrations:
+
+```python
+from ssd_core import SDDWorkflow, WorkflowPhase
+
+workflow = SDDWorkflow("my-app")
+
+result = workflow.run(
+    "harden-login-rate-limit",
+    profile="standard",
+    title="Harden login rate limits",
+)
+
+if result.state.phase == WorkflowPhase.PROPOSE:
+    print(result.state.next_action)
+
+blocked = workflow.sync_specs("harden-login-rate-limit")
+if not blocked.ok:
+    print(blocked.failures[0].kind.value)
+    print(blocked.failures[0].message)
+```
+
+`SDDWorkflow.sync_specs()` and `SDDWorkflow.archive()` refuse to run unless the current phase permits them. That is the difference between SSD helpers and SSD enforcement.
+
 ## When To Use It
 
 Use SSD-Core for:
@@ -280,7 +306,7 @@ See:
 
 ## Current Status
 
-Current release: `v0.1.4`
+Current release: `v0.1.5`
 
 Solid in v0.1:
 
@@ -291,6 +317,7 @@ Solid in v0.1:
 - cross-platform release check and CI
 - npm package published as `ssd-core`
 - workflow binding through `ssd-core run`
+- importable strict orchestrator through `SDDWorkflow`
 
 Deferred to future versions:
 
