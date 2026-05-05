@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Iterable, Protocol
 
 
-VERSION = "0.1.9"
+VERSION = "0.2.0"
 
 REQUIRED_DIRECTORIES = [
     ".sdd",
@@ -863,8 +863,11 @@ def verify_change(root: Path, change_id: str) -> list[Finding]:
     Requires that the change has a recorded TASK phase in state.json, that
     verification.md exists with status: verified, and that the artifact contains
     no placeholder evidence.  On success the VERIFY phase is recorded.
+
+    Checksum validation is intentionally skipped: editing verification.md after
+    recording TASK is the expected workflow for this phase.
     """
-    findings = require_recorded_phase(root, change_id, WorkflowPhase.TASK)
+    findings = gate_command(root, change_id, WorkflowPhase.TASK, check_checksum=False)
     if findings:
         return findings
 
@@ -930,7 +933,7 @@ def validate_spec_sync(root: Path, change_dir: Path, change_id: str) -> list[Fin
 
 
 def archive_change(root: Path, change_id: str) -> list[Finding]:
-    findings = require_recorded_phase(root, change_id, WorkflowPhase.ARCHIVE)
+    findings = gate_command(root, change_id, WorkflowPhase.ARCHIVE, check_checksum=True)
     if findings:
         return findings
 
@@ -989,7 +992,7 @@ def append_sync_record(archive_path: Path, spec_path: Path, root: Path) -> None:
 
 
 def sync_specs(root: Path, change_id: str) -> list[Finding]:
-    findings = require_recorded_phase(root, change_id, WorkflowPhase.SYNC_SPECS)
+    findings = gate_command(root, change_id, WorkflowPhase.SYNC_SPECS, check_checksum=True)
     if findings:
         return findings
 
@@ -1280,6 +1283,56 @@ def require_recorded_phase(root: Path, change_id: str, expected: WorkflowPhase) 
     return []
 
 
+def gate_command(
+    root: Path,
+    change_id: str,
+    required_phase: WorkflowPhase,
+    *,
+    check_checksum: bool = False,
+) -> list[Finding]:
+    """Central command gate used by all destructive workflow commands.
+
+    Calls ``require_recorded_phase`` to assert the correct phase is declared in
+    ``state.json``, then (when ``check_checksum=True``) compares the stored
+    artifact checksum against the current on-disk state.  A mismatch means
+    artifacts were silently mutated after the last explicit transition and the
+    command is blocked until the transition is re-recorded.
+
+    Set ``check_checksum=False`` for commands where artifact changes are
+    *expected* between the preceding phase and the command invocation — e.g.
+    ``verify``, where editing ``verification.md`` after recording TASK is the
+    whole point of that phase.
+    """
+    findings = require_recorded_phase(root, change_id, required_phase)
+    if findings or not check_checksum:
+        return findings
+
+    registry, reg_findings = read_workflow_registry(root)
+    if reg_findings:
+        return reg_findings
+
+    entry = state_entry(registry, change_id)
+    if entry is None:
+        return []
+
+    stored = str(entry.get("checksum", ""))
+    if not stored:
+        return []
+
+    location = change_location(root, change_id)
+    current = artifact_checksum(location) if location is not None else ""
+    if current != stored:
+        return [
+            Finding(
+                "error",
+                location or workflow_registry_path(root),
+                f"artifact checksum is stale since {required_phase.value} was recorded; "
+                f"run `ssd-core transition {change_id} {required_phase.value}` to acknowledge changes before proceeding",
+            )
+        ]
+    return []
+
+
 def validate_workflow_registry(root: Path, *, strict_state: bool = False) -> list[Finding]:
     registry, findings = read_workflow_registry(root)
     if findings:
@@ -1518,36 +1571,35 @@ class SDDWorkflow:
         ]
         return WorkflowResult(state, failures)
 
-    def require_phase(self, change_id: str, expected: WorkflowPhase) -> WorkflowResult:
+    def require_phase(self, change_id: str, expected: WorkflowPhase, *, check_checksum: bool = False) -> WorkflowResult:
+        gate_findings = gate_command(self.root, change_id, expected, check_checksum=check_checksum)
         state = self.state(change_id)
-        recorded_findings = require_recorded_phase(self.root, change_id, expected)
-        if not recorded_findings and state.phase == expected:
-            return WorkflowResult(state, [])
-
-        if recorded_findings:
-            failure = WorkflowFailure.from_finding(WorkflowFailureKind.PHASE_ORDER, recorded_findings[0])
+        if gate_findings:
+            failure = WorkflowFailure.from_finding(WorkflowFailureKind.PHASE_ORDER, gate_findings[0])
             blocked_state = WorkflowState(
                 change_id,
                 WorkflowPhase.BLOCKED,
                 state.profile,
                 state.next_action,
-                [finding for finding in recorded_findings],
+                gate_findings,
             )
             return WorkflowResult(blocked_state, [failure])
 
-        failure = WorkflowFailure(
-            WorkflowFailureKind.PHASE_ORDER,
-            f"workflow phase must be {expected.value}; current phase is {state.phase.value}",
-            change_directory(self.root, change_id),
-        )
-        blocked_state = WorkflowState(
-            change_id,
-            WorkflowPhase.BLOCKED,
-            state.profile,
-            state.next_action,
-            [failure.to_finding()],
-        )
-        return WorkflowResult(blocked_state, [failure])
+        if state.phase != expected:
+            failure = WorkflowFailure(
+                WorkflowFailureKind.PHASE_ORDER,
+                f"workflow phase must be {expected.value}; current phase is {state.phase.value}",
+                change_directory(self.root, change_id),
+            )
+            blocked_state = WorkflowState(
+                change_id,
+                WorkflowPhase.BLOCKED,
+                state.profile,
+                state.next_action,
+                [failure.to_finding()],
+            )
+            return WorkflowResult(blocked_state, [failure])
+        return WorkflowResult(state, [])
 
     def transition(self, change_id: str, target_phase: WorkflowPhase | str) -> WorkflowResult:
         try:
@@ -1577,7 +1629,7 @@ class SDDWorkflow:
         return WorkflowResult(state, failures)
 
     def sync_specs(self, change_id: str) -> WorkflowResult:
-        required = self.require_phase(change_id, WorkflowPhase.SYNC_SPECS)
+        required = self.require_phase(change_id, WorkflowPhase.SYNC_SPECS, check_checksum=True)
         if not required.ok:
             return required
 
@@ -1597,7 +1649,7 @@ class SDDWorkflow:
         return WorkflowResult(self.state(change_id), [])
 
     def archive(self, change_id: str) -> WorkflowResult:
-        required = self.require_phase(change_id, WorkflowPhase.ARCHIVE)
+        required = self.require_phase(change_id, WorkflowPhase.ARCHIVE, check_checksum=True)
         if not required.ok:
             return required
 

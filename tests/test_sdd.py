@@ -48,7 +48,7 @@ class SddToolingTests(unittest.TestCase):
             self.record_transition(root, change_id, phase)
 
     def test_version_is_defined(self) -> None:
-        self.assertEqual(sdd.VERSION, "0.1.9")
+        self.assertEqual(sdd.VERSION, "0.2.0")
 
     def test_distribution_versions_match(self) -> None:
         pyproject = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
@@ -762,6 +762,115 @@ class SddToolingTests(unittest.TestCase):
     def test_public_verify_change_is_exported(self) -> None:
         self.assertIs(ssd_core.verify_change, sdd.verify_change)
         self.assertIs(ssd_core.validate_verification_evidence, sdd.validate_verification_evidence)
+
+    def test_gate_command_is_exported(self) -> None:
+        self.assertIs(ssd_core.gate_command, sdd.gate_command)
+
+    def test_archive_blocks_when_artifact_edited_after_archive_phase_recorded(self) -> None:
+        root = REPO_ROOT / ".tmp-tests" / f"gate-stale-{uuid.uuid4().hex}"
+        change_id = "guard-login"
+
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(sdd.init_project(root), [])
+            self.assertEqual(sdd.create_change(root, change_id, "standard", "Guard login"), [])
+
+        change_dir = root / ".sdd" / "changes" / change_id
+        for filename in ["proposal.md", "delta-spec.md", "design.md", "tasks.md", "archive.md"]:
+            path = change_dir / filename
+            path.write_text(path.read_text(encoding="utf-8").replace("status: draft", "status: ready"), encoding="utf-8")
+        tasks_path = change_dir / "tasks.md"
+        tasks_path.write_text(tasks_path.read_text(encoding="utf-8").replace("- [ ]", "- [x]"), encoding="utf-8")
+        verification_path = change_dir / "verification.md"
+        verification_text = verification_path.read_text(encoding="utf-8")
+        verification_text = verification_text.replace("status: draft", "status: verified")
+        verification_text = verification_text.replace("pending verification evidence", "unit test evidence")
+        verification_text = verification_text.replace("not-run", "pass")
+        verification_text = verification_text.replace("Record host-project verification actions.", "pytest -q (exit 0)")
+        verification_path.write_text(verification_text, encoding="utf-8")
+
+        self.record_standard_ready_transitions(root, change_id)
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(sdd.sync_specs(root, change_id), [])
+
+        # ARCHIVE is now recorded. Silently edit an artifact.
+        proposal_path = change_dir / "proposal.md"
+        proposal_path.write_text(proposal_path.read_text(encoding="utf-8") + "\n<!-- silent edit -->", encoding="utf-8")
+
+        findings = sdd.archive_change(root, change_id)
+        self.assertEqual(len(findings), 1)
+        self.assertIn("artifact checksum is stale", findings[0].message)
+        self.assertIn("ssd-core transition", findings[0].message)
+
+    def test_verify_does_not_block_when_verification_md_edited_after_task(self) -> None:
+        root = REPO_ROOT / ".tmp-tests" / f"verify-expects-edit-{uuid.uuid4().hex}"
+        change_id = "guard-login"
+
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(sdd.init_project(root), [])
+            self.assertEqual(sdd.create_change(root, change_id, "standard", "Guard login"), [])
+
+        change_dir = root / ".sdd" / "changes" / change_id
+        for filename in ["proposal.md", "delta-spec.md", "design.md", "archive.md"]:
+            path = change_dir / filename
+            path.write_text(path.read_text(encoding="utf-8").replace("status: draft", "status: ready"), encoding="utf-8")
+        tasks_path = change_dir / "tasks.md"
+        tasks_path.write_text(tasks_path.read_text(encoding="utf-8").replace("- [ ]", "- [x]"), encoding="utf-8")
+        tasks_path.write_text(tasks_path.read_text(encoding="utf-8").replace("status: draft", "status: ready"), encoding="utf-8")
+
+        with contextlib.redirect_stdout(io.StringIO()):
+            sdd.transition_workflow(root, change_id, sdd.WorkflowPhase.SPECIFY)
+            sdd.transition_workflow(root, change_id, sdd.WorkflowPhase.DESIGN)
+            sdd.transition_workflow(root, change_id, sdd.WorkflowPhase.TASK)
+
+        # TASK recorded with checksum A. Now edit verification.md (expected workflow).
+        verification_path = change_dir / "verification.md"
+        verification_text = verification_path.read_text(encoding="utf-8")
+        verification_text = verification_text.replace("status: draft", "status: verified")
+        verification_text = verification_text.replace("pending verification evidence", "unit test evidence")
+        verification_text = verification_text.replace("not-run", "pass")
+        verification_text = verification_text.replace("Record host-project verification actions.", "pytest -q (exit 0)")
+        verification_path.write_text(verification_text, encoding="utf-8")
+
+        # Checksum is stale (B != A), but verify must NOT block — editing verification.md is the point.
+        with contextlib.redirect_stdout(io.StringIO()):
+            findings = sdd.verify_change(root, change_id)
+
+        self.assertEqual(findings, [])
+        self.assertEqual(sdd.declared_workflow_phase(root, change_id), sdd.WorkflowPhase.VERIFY)
+
+    def test_gate_command_check_checksum_false_ignores_stale_artifacts(self) -> None:
+        root = REPO_ROOT / ".tmp-tests" / f"gate-no-checksum-{uuid.uuid4().hex}"
+        change_id = "guard-login"
+
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(sdd.init_project(root), [])
+            self.assertEqual(sdd.create_change(root, change_id, "standard", "Guard login"), [])
+
+        change_dir = root / ".sdd" / "changes" / change_id
+        for filename in ["proposal.md", "delta-spec.md", "design.md", "archive.md"]:
+            path = change_dir / filename
+            path.write_text(path.read_text(encoding="utf-8").replace("status: draft", "status: ready"), encoding="utf-8")
+        tasks_path = change_dir / "tasks.md"
+        tasks_path.write_text(tasks_path.read_text(encoding="utf-8").replace("- [ ]", "- [x]"), encoding="utf-8")
+        tasks_path.write_text(tasks_path.read_text(encoding="utf-8").replace("status: draft", "status: ready"), encoding="utf-8")
+        with contextlib.redirect_stdout(io.StringIO()):
+            sdd.transition_workflow(root, change_id, sdd.WorkflowPhase.SPECIFY)
+            sdd.transition_workflow(root, change_id, sdd.WorkflowPhase.DESIGN)
+            sdd.transition_workflow(root, change_id, sdd.WorkflowPhase.TASK)
+
+        # stale checksum
+        (change_dir / "proposal.md").write_text(
+            (change_dir / "proposal.md").read_text(encoding="utf-8") + "\n<!-- silent -->", encoding="utf-8"
+        )
+
+        # gate_command with check_checksum=False must pass despite stale checksum
+        findings = sdd.gate_command(root, change_id, sdd.WorkflowPhase.TASK, check_checksum=False)
+        self.assertEqual(findings, [])
+
+        # gate_command with check_checksum=True must block
+        findings = sdd.gate_command(root, change_id, sdd.WorkflowPhase.TASK, check_checksum=True)
+        self.assertEqual(len(findings), 1)
+        self.assertIn("artifact checksum is stale", findings[0].message)
 
 
 if __name__ == "__main__":
