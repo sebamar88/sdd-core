@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Iterable, Protocol
 
 
-VERSION = "0.1.8"
+VERSION = "0.1.9"
 
 REQUIRED_DIRECTORIES = [
     ".sdd",
@@ -1172,17 +1172,33 @@ def phase_is_supported(target: WorkflowPhase, inferred: WorkflowPhase) -> bool:
     return PHASE_ORDER[target] <= PHASE_ORDER[inferred]
 
 
+# Phases that have a dedicated command and MUST NOT be reached via `transition`.
+# Using the dedicated command enforces quality checks that `transition` skips.
+TRANSITION_RESTRICTED_PHASES = {
+    WorkflowPhase.VERIFY,    # use: ssd-core verify
+    WorkflowPhase.ARCHIVED,  # use: ssd-core archive
+    WorkflowPhase.NOT_STARTED,
+    WorkflowPhase.BLOCKED,
+}
+
+
 def transition_workflow(root: Path, change_id: str, target_phase: WorkflowPhase) -> WorkflowState:
     findings = validate_change_id(change_id)
     if findings:
         return WorkflowState(change_id, WorkflowPhase.BLOCKED, "unknown", "Use a kebab-case change id.", findings)
-    if target_phase in {WorkflowPhase.NOT_STARTED, WorkflowPhase.BLOCKED}:
+    if target_phase in TRANSITION_RESTRICTED_PHASES:
+        if target_phase == WorkflowPhase.VERIFY:
+            message = f"use `ssd-core verify {change_id}` to record the verify phase; it enforces evidence quality before recording"
+        elif target_phase == WorkflowPhase.ARCHIVED:
+            message = f"use `ssd-core archive {change_id}` to archive a change"
+        else:
+            message = f"cannot transition to {target_phase.value}"
         return WorkflowState(
             change_id,
             WorkflowPhase.BLOCKED,
             "unknown",
             "Choose an active workflow phase.",
-            [Finding("error", None, f"cannot transition to {target_phase.value}")],
+            [Finding("error", None, message)],
         )
 
     inferred = workflow_state(root, change_id)
@@ -1698,6 +1714,39 @@ def install_hooks(root: Path) -> list[Finding]:
     return []
 
 
+def print_log(root: Path, change_id: str) -> int:
+    findings = validate_change_id(change_id)
+    if findings:
+        return print_findings(root, findings)
+
+    registry, findings = read_workflow_registry(root)
+    if findings:
+        return print_findings(root, findings)
+
+    entry = state_entry(registry, change_id)
+    if entry is None:
+        print(f"No recorded history for: {change_id}")
+        return 1
+
+    history = entry.get("history")
+    if not isinstance(history, list) or not history:
+        print(f"No recorded history entries for: {change_id}")
+        return 1
+
+    print(f"SDD log: {change_id}")
+    print(f"- profile: {entry.get('profile', 'unknown')}")
+    print(f"- phase:   {entry.get('phase', 'unknown')}")
+    print("")
+    print("History:")
+    for record in history:
+        phase = record.get("phase", "?")
+        action = record.get("action", "?")
+        at = record.get("at", "?")
+        checksum = str(record.get("checksum", ""))[:8] or "(none)"
+        print(f"  [{at}] {phase:20s} via {action:12s} checksum:{checksum}")
+    return 0
+
+
 def print_phase(root: Path, change_id: str) -> int:
     findings = validate_change_id(change_id)
     if findings:
@@ -1932,15 +1981,22 @@ def build_parser() -> argparse.ArgumentParser:
             WorkflowPhase.SPECIFY.value,
             WorkflowPhase.DESIGN.value,
             WorkflowPhase.TASK.value,
-            WorkflowPhase.VERIFY.value,
             WorkflowPhase.CRITIQUE.value,
             WorkflowPhase.ARCHIVE_RECORD.value,
             WorkflowPhase.SYNC_SPECS.value,
             WorkflowPhase.ARCHIVE.value,
         ],
-        help="target phase to record after artifacts prove readiness",
+        help="target phase to record after artifacts prove readiness; use 'ssd-core verify' to record the verify phase",
     )
     transition_parser.add_argument(
+        "--root",
+        default=".",
+        help="repository root; defaults to the current directory",
+    )
+
+    log_parser = subcommands.add_parser("log", help="show the recorded command history for a change")
+    log_parser.add_argument("change_id", help="kebab-case change identifier")
+    log_parser.add_argument(
         "--root",
         default=".",
         help="repository root; defaults to the current directory",
@@ -2046,6 +2102,10 @@ def main(argv: list[str] | None = None) -> int:
         root = Path(args.root).resolve()
         state = transition_workflow(root, args.change_id, WorkflowPhase(args.phase))
         return print_transition(root, state)
+
+    if args.command == "log":
+        root = Path(args.root).resolve()
+        return print_log(root, args.change_id)
 
     if args.command == "verify":
         root = Path(args.root).resolve()
