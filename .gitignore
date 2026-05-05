@@ -1,5 +1,6 @@
 .omx/
 __pycache__/
+.pytest_cache/
 *.pyc
 .tmp-tests/
 .tmp-adapter-smoke*/

@@ -393,6 +393,7 @@ It MUST:
 - pass artifact references, not unnecessary full context
 - enforce dependencies between phases
 - reject phase transitions that are not supported by artifact readiness
+- execute verification commands when a workflow requires executable evidence
 - show phase summaries
 - prevent archive before verification
 
@@ -404,6 +405,8 @@ It MUST NOT:
 - overwrite unrelated user changes
 
 The state registry is not hidden runtime memory. It is a repository artifact that records the declared phase, transition history, and artifact checksum for each governed change. Tooling SHOULD compare this registry with the artifacts on disk before privileged actions such as sync, archive, commit hooks, or CI gates.
+
+Execution evidence is also repository-native. Commands executed by the workflow engine SHOULD record exit code, stdout/stderr log path, and output checksum under `.sdd/evidence/<change-id>/`.
 
 ## 13. Task Contract
 
@@ -471,6 +474,8 @@ Verification evidence MAY include:
 - review findings
 
 Adapters MUST report known verification gaps.
+
+When executable evidence is required, `verification.md` is not enough by itself. The workflow MUST also include passing execution records under `.sdd/evidence/<change-id>/`, and those records MUST point to logs whose checksums still match.
 
 ## 15. Critique Contract
 

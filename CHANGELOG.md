@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.3.0 - 2026-05-05
+
+- Added executable verification evidence through `ssd-core verify --command`, including stdout/stderr logs, exit codes, and output checksums under `.sdd/evidence/`.
+- Added `WorkflowEngine.execute()` and `SDDWorkflow.verify()` so the engine can run gated workflow actions, not only validate whether they are allowed.
+- Added `guard --require-execution-evidence` for repositories that want verified or archived changes to require passing execution records.
+- Restricted the `verify` phase to the dedicated verify command so `transition verify` can no longer reconcile manual edits into a verified state.
+- Added semantic verification checks for placeholder evidence and passing verification matrix rows.
+
 ## 0.1.7 - 2026-05-05
 
 - Added `.sdd/state.json` as the explicit workflow registry for declared phases, transition history, and artifact checksums.

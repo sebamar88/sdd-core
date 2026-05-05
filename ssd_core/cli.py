@@ -6,8 +6,10 @@ import json
 import re
 import shutil
 import shlex
+import subprocess
+import uuid
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime, timezone
 from enum import Enum
 from importlib.resources import files
 from pathlib import Path
@@ -26,6 +28,7 @@ REQUIRED_DIRECTORIES = [
     ".sdd/specs",
     ".sdd/changes",
     ".sdd/archive",
+    ".sdd/evidence",
 ]
 
 REQUIRED_ADAPTERS = [
@@ -122,6 +125,7 @@ FOUNDATION_DOC_FILES = [
 EMPTY_STATE_DIRECTORIES = [
     "archive",
     "changes",
+    "evidence",
     "specs",
 ]
 
@@ -904,16 +908,179 @@ def check_change(root: Path, change_id: str) -> list[Finding]:
     return check_change_artifacts(root, change_directory(root, change_id), change_id)
 
 
-def verify_change(root: Path, change_id: str) -> list[Finding]:
+def utc_timestamp() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def evidence_directory(root: Path, change_id: str) -> Path:
+    return root / ".sdd" / "evidence" / change_id
+
+
+def execution_evidence_path(root: Path, change_id: str) -> Path:
+    return evidence_directory(root, change_id) / "verification.jsonl"
+
+
+def set_frontmatter_value(text: str, key: str, value: str) -> str:
+    lines = text.splitlines()
+    if not lines or lines[0].strip() != "---":
+        return text
+    for index, line in enumerate(lines[1:], start=1):
+        if line.strip() == "---":
+            break
+        if line.startswith(f"{key}:"):
+            lines[index] = f"{key}: {value}"
+            return "\n".join(lines) + ("\n" if text.endswith("\n") else "")
+    return text
+
+
+def append_execution_evidence_to_verification(root: Path, verification_path: Path, records: list[dict[str, object]]) -> None:
+    text = verification_path.read_text(encoding="utf-8")
+    text = set_frontmatter_value(text, "status", "verified")
+    text = set_frontmatter_value(text, "updated", date.today().isoformat())
+    text = text.replace("pending verification evidence", "execution evidence recorded")
+    text = text.replace("not-run", "pass")
+    text = text.replace("Record host-project verification actions.", "Recorded by `ssd-core verify --command`.")
+
+    lines = ["", "## Execution Evidence", ""]
+    for record in records:
+        log_path = root / str(record["log_path"])
+        try:
+            relative_log = log_path.relative_to(root).as_posix()
+        except ValueError:
+            relative_log = str(record["log_path"])
+        lines.append(
+            f"- `{record['command']}` exited `{record['exit_code']}`; log `{relative_log}`; checksum `{record['output_checksum']}`"
+        )
+
+    suffix = "\n" if text.endswith("\n") else "\n\n"
+    verification_path.write_text(text + suffix + "\n".join(lines) + "\n", encoding="utf-8")
+
+
+def append_execution_evidence(root: Path, change_id: str, command: str, exit_code: int, output: str) -> dict[str, object]:
+    evidence_id = uuid.uuid4().hex
+    evidence_dir = evidence_directory(root, change_id)
+    evidence_dir.mkdir(parents=True, exist_ok=True)
+
+    output_checksum = hashlib.sha256(output.encode("utf-8")).hexdigest()
+    log_path = evidence_dir / f"{evidence_id}.log"
+    log_path.write_text(output, encoding="utf-8")
+
+    record = {
+        "schema": "sdd.execution-evidence.v1",
+        "id": evidence_id,
+        "change_id": change_id,
+        "phase": WorkflowPhase.VERIFY.value,
+        "command": command,
+        "exit_code": exit_code,
+        "passed": exit_code == 0,
+        "recorded_at": utc_timestamp(),
+        "log_path": log_path.relative_to(root).as_posix(),
+        "output_checksum": output_checksum,
+    }
+
+    evidence_path = execution_evidence_path(root, change_id)
+    with evidence_path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(record, sort_keys=True) + "\n")
+    return record
+
+
+def run_verification_command(root: Path, change_id: str, command: str, timeout_seconds: int) -> tuple[dict[str, object], Finding | None]:
+    try:
+        completed = subprocess.run(
+            command,
+            cwd=root,
+            shell=True,
+            text=True,
+            capture_output=True,
+            timeout=timeout_seconds,
+            check=False,
+        )
+        output = (
+            f"$ {command}\n"
+            f"exit_code: {completed.returncode}\n\n"
+            f"--- stdout ---\n{completed.stdout}\n"
+            f"--- stderr ---\n{completed.stderr}"
+        )
+        record = append_execution_evidence(root, change_id, command, completed.returncode, output)
+        if completed.returncode != 0:
+            return record, Finding("error", evidence_directory(root, change_id), f"verification command failed: {command}")
+        return record, None
+    except subprocess.TimeoutExpired as exc:
+        output = (
+            f"$ {command}\n"
+            f"timeout_seconds: {timeout_seconds}\n\n"
+            f"--- stdout ---\n{exc.stdout or ''}\n"
+            f"--- stderr ---\n{exc.stderr or ''}"
+        )
+        record = append_execution_evidence(root, change_id, command, 124, output)
+        return record, Finding("error", evidence_directory(root, change_id), f"verification command timed out: {command}")
+
+
+def execution_evidence_records(root: Path, change_id: str) -> tuple[list[dict[str, object]], list[Finding]]:
+    path = execution_evidence_path(root, change_id)
+    if not path.is_file():
+        return [], [Finding("error", path, "execution evidence is missing")]
+
+    records: list[dict[str, object]] = []
+    findings: list[Finding] = []
+    for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+        if not line.strip():
+            continue
+        try:
+            record = json.loads(line)
+        except json.JSONDecodeError as exc:
+            findings.append(Finding("error", path, f"invalid execution evidence JSON at line {line_number}: {exc.msg}"))
+            continue
+        if not isinstance(record, dict):
+            findings.append(Finding("error", path, f"execution evidence line {line_number} must be an object"))
+            continue
+        records.append(record)
+    return records, findings
+
+
+def validate_execution_evidence(root: Path, change_id: str) -> list[Finding]:
+    records, findings = execution_evidence_records(root, change_id)
+    if findings:
+        return findings
+    if not any(record.get("passed") is True and record.get("phase") == WorkflowPhase.VERIFY.value for record in records):
+        findings.append(Finding("error", execution_evidence_path(root, change_id), "no passing execution evidence is recorded"))
+    for record in records:
+        log_path_value = record.get("log_path")
+        checksum_value = record.get("output_checksum")
+        if not isinstance(log_path_value, str) or not isinstance(checksum_value, str):
+            findings.append(Finding("error", execution_evidence_path(root, change_id), "execution evidence is missing log_path or output_checksum"))
+            continue
+        log_path = root / log_path_value
+        if not log_path.is_file():
+            findings.append(Finding("error", log_path, "execution evidence log is missing"))
+            continue
+        current_checksum = hashlib.sha256(log_path.read_text(encoding="utf-8").encode("utf-8")).hexdigest()
+        if current_checksum != checksum_value:
+            findings.append(Finding("error", log_path, "execution evidence log checksum does not match"))
+    return findings
+
+
+def verify_change(
+    root: Path,
+    change_id: str,
+    commands: list[str] | None = None,
+    *,
+    require_command: bool = False,
+    timeout_seconds: int = 120,
+) -> list[Finding]:
     """Explicit governance gate: validate evidence quality and record VERIFY phase.
 
-    Requires that the change has a recorded TASK phase in state.json, that
-    verification.md exists with status: verified, and that the artifact contains
-    no placeholder evidence.  On success the VERIFY phase is recorded.
+    Requires that the change has a recorded TASK phase in state.json.  When
+    commands are provided, they are executed from the repository root and their
+    outputs are captured under .sdd/evidence before the VERIFY phase is recorded.
 
     Checksum validation is intentionally skipped: editing verification.md after
     recording TASK is the expected workflow for this phase.
     """
+    commands = commands or []
+    if require_command and not commands:
+        return [Finding("error", change_directory(root, change_id), "verify requires at least one --command")]
+
     required_phase, check_checksum = COMMAND_GATES["verify"]
     findings = gate_command(root, change_id, required_phase, check_checksum=check_checksum)
     if findings:
@@ -923,6 +1090,19 @@ def verify_change(root: Path, change_id: str) -> list[Finding]:
     verification_path = change_dir / "verification.md"
     if not verification_path.is_file():
         return [Finding("error", verification_path, "verification.md is required to run verify")]
+
+    execution_records: list[dict[str, object]] = []
+    execution_findings: list[Finding] = []
+    for command in commands:
+        record, finding = run_verification_command(root, change_id, command, timeout_seconds)
+        execution_records.append(record)
+        if finding is not None:
+            execution_findings.append(finding)
+
+    if execution_records:
+        append_execution_evidence_to_verification(root, verification_path, execution_records)
+    if execution_findings:
+        return execution_findings
 
     metadata, error = read_frontmatter(verification_path)
     if error is not None:
@@ -934,6 +1114,13 @@ def verify_change(root: Path, change_id: str) -> list[Finding]:
     evidence_findings = validate_verification_evidence(verification_path)
     if evidence_findings:
         return evidence_findings
+    matrix_findings = validate_verification_matrix(verification_path)
+    if matrix_findings:
+        return matrix_findings
+    if commands:
+        execution_findings = validate_execution_evidence(root, change_id)
+        if execution_findings:
+            return execution_findings
 
     summary = summarize_change(change_dir)
     new_state = WorkflowState(
@@ -1804,6 +1991,39 @@ class SDDWorkflow:
             )
         return WorkflowResult(self.state(change_id), [])
 
+    def verify(
+        self,
+        change_id: str,
+        commands: list[str] | None = None,
+        *,
+        require_command: bool = False,
+        timeout_seconds: int = 120,
+    ) -> WorkflowResult:
+        required = self.require_phase(change_id, WorkflowPhase.TASK, check_checksum=False)
+        if not required.ok:
+            return required
+
+        findings = verify_change(
+            self.root,
+            change_id,
+            commands,
+            require_command=require_command,
+            timeout_seconds=timeout_seconds,
+        )
+        if findings:
+            failures = [WorkflowFailure.from_finding(WorkflowFailureKind.COMMAND, finding) for finding in findings]
+            return WorkflowResult(
+                WorkflowState(
+                    change_id,
+                    WorkflowPhase.BLOCKED,
+                    required.state.profile,
+                    "Resolve verification findings before continuing.",
+                    [failure.to_finding() for failure in failures],
+                ),
+                failures,
+            )
+        return WorkflowResult(self.state(change_id), [])
+
     def archive(self, change_id: str) -> WorkflowResult:
         required = self.require_phase(change_id, WorkflowPhase.ARCHIVE, check_checksum=True)
         if not required.ok:
@@ -1860,8 +2080,41 @@ class WorkflowEngine:
             if not gate_command(self.root, change_id, phase, check_checksum=checksum)
         )
 
+    def execute(
+        self,
+        change_id: str,
+        command: str,
+        *,
+        verification_commands: list[str] | None = None,
+        require_command: bool = False,
+        timeout_seconds: int = 120,
+    ) -> list[Finding]:
+        """Execute a gated workflow command after checking its declared phase."""
+        findings = self.guard(change_id, command)
+        if findings:
+            return findings
+        if command == "verify":
+            return verify_change(
+                self.root,
+                change_id,
+                verification_commands,
+                require_command=require_command,
+                timeout_seconds=timeout_seconds,
+            )
+        if command == "sync-specs":
+            return sync_specs(self.root, change_id)
+        if command == "archive":
+            return archive_change(self.root, change_id)
+        return [Finding("error", None, f"no executor registered for command: {command}")]
 
-def guard_repository(root: Path, *, require_active_change: bool = False, strict_state: bool = False) -> list[Finding]:
+
+def guard_repository(
+    root: Path,
+    *,
+    require_active_change: bool = False,
+    strict_state: bool = False,
+    require_execution_evidence: bool = False,
+) -> list[Finding]:
     findings = [finding for finding in validate(root) if finding.severity == "error"]
     if findings:
         return findings
@@ -1882,6 +2135,8 @@ def guard_repository(root: Path, *, require_active_change: bool = False, strict_
         state = workflow_state(root, change_dir.name)
         if state.is_blocked:
             findings.extend(state.findings)
+        if require_execution_evidence and PHASE_ORDER[state.phase] >= PHASE_ORDER[WorkflowPhase.VERIFY]:
+            findings.extend(validate_execution_evidence(root, change_dir.name))
 
     archive_root = root / ".sdd" / "archive"
     if archive_root.is_dir():
@@ -1889,12 +2144,25 @@ def guard_repository(root: Path, *, require_active_change: bool = False, strict_
             change_id = archived_change_id(archive_dir)
             findings.extend(check_change_artifacts(root, archive_dir, change_id))
             findings.extend(validate_spec_sync(root, archive_dir, change_id))
+            if require_execution_evidence:
+                findings.extend(validate_execution_evidence(root, change_id))
 
     return findings
 
 
-def print_guard(root: Path, *, require_active_change: bool = False, strict_state: bool = False) -> int:
-    findings = guard_repository(root, require_active_change=require_active_change, strict_state=strict_state)
+def print_guard(
+    root: Path,
+    *,
+    require_active_change: bool = False,
+    strict_state: bool = False,
+    require_execution_evidence: bool = False,
+) -> int:
+    findings = guard_repository(
+        root,
+        require_active_change=require_active_change,
+        strict_state=strict_state,
+        require_execution_evidence=require_execution_evidence,
+    )
     if not findings:
         print("SDD guard passed.")
         return 0
@@ -2251,6 +2519,23 @@ def build_parser() -> argparse.ArgumentParser:
     verify_parser = subcommands.add_parser("verify", help="validate evidence quality and record the verify phase")
     verify_parser.add_argument("change_id", help="kebab-case change identifier")
     verify_parser.add_argument(
+        "--command",
+        action="append",
+        default=[],
+        help="verification command to execute from the repository root; may be repeated",
+    )
+    verify_parser.add_argument(
+        "--require-command",
+        action="store_true",
+        help="fail unless at least one --command is provided",
+    )
+    verify_parser.add_argument(
+        "--timeout",
+        type=int,
+        default=120,
+        help="per-command timeout in seconds; defaults to 120",
+    )
+    verify_parser.add_argument(
         "--root",
         default=".",
         help="repository root; defaults to the current directory",
@@ -2274,6 +2559,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--strict-state",
         action="store_true",
         help="fail when .sdd/state.json is missing entries or artifact checksums are stale",
+    )
+    guard_parser.add_argument(
+        "--require-execution-evidence",
+        action="store_true",
+        help="fail verified or archived changes without passing .sdd/evidence execution records",
     )
     guard_parser.add_argument(
         "--root",
@@ -2355,7 +2645,13 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "verify":
         root = Path(args.root).resolve()
-        findings = verify_change(root, args.change_id)
+        findings = verify_change(
+            root,
+            args.change_id,
+            args.command,
+            require_command=args.require_command,
+            timeout_seconds=args.timeout,
+        )
         if findings:
             return print_findings(root, findings)
         return 0
@@ -2366,7 +2662,12 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "guard":
         root = Path(args.root).resolve()
-        return print_guard(root, require_active_change=args.require_active_change, strict_state=args.strict_state)
+        return print_guard(
+            root,
+            require_active_change=args.require_active_change,
+            strict_state=args.strict_state,
+            require_execution_evidence=args.require_execution_evidence,
+        )
 
     if args.command == "install-hooks":
         root = Path(args.root).resolve()

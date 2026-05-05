@@ -136,7 +136,7 @@ If tasks are incomplete or verification is missing, the change cannot close clea
 ssd-core transition harden-login-rate-limit specify --root my-app
 ssd-core transition harden-login-rate-limit design --root my-app
 ssd-core transition harden-login-rate-limit task --root my-app
-ssd-core transition harden-login-rate-limit verify --root my-app
+ssd-core verify harden-login-rate-limit --command "pytest -q" --root my-app
 ssd-core transition harden-login-rate-limit archive-record --root my-app
 ssd-core transition harden-login-rate-limit sync-specs --root my-app
 ssd-core sync-specs harden-login-rate-limit --root my-app
@@ -144,7 +144,7 @@ ssd-core archive harden-login-rate-limit --root my-app
 ssd-core validate --root my-app
 ```
 
-Outcome: the code change, specs, verification evidence, state transitions, checksums, and archive record all stay in the repo.
+Outcome: the code change, specs, executed verification evidence, state transitions, checksums, and archive record all stay in the repo.
 
 ## Why SSD-Core Instead Of Another SDD Template
 
@@ -179,6 +179,11 @@ if result.state.phase == WorkflowPhase.PROPOSE:
     print(result.state.next_action)
 
 transitioned = workflow.transition("harden-login-rate-limit", WorkflowPhase.SPECIFY)
+verified = workflow.verify(
+    "harden-login-rate-limit",
+    commands=["pytest -q"],
+    require_command=True,
+)
 
 blocked = workflow.sync_specs("harden-login-rate-limit")
 if not blocked.ok:
@@ -186,7 +191,7 @@ if not blocked.ok:
     print(blocked.failures[0].message)
 ```
 
-`SDDWorkflow.transition()`, `SDDWorkflow.sync_specs()`, and `SDDWorkflow.archive()` refuse invalid phase order. Sync and archive also require the phase to be recorded in `.sdd/state.json`, not merely inferred from edited files. That is the difference between SSD helpers and SSD enforcement.
+`SDDWorkflow.transition()`, `SDDWorkflow.verify()`, `SDDWorkflow.sync_specs()`, and `SDDWorkflow.archive()` refuse invalid phase order. `verify` can execute commands and store reproducible logs under `.sdd/evidence/`; sync and archive require the phase to be recorded in `.sdd/state.json`, not merely inferred from edited files. That is the difference between SSD helpers and SSD enforcement.
 
 ## Hard Enforcement
 
@@ -194,10 +199,11 @@ SSD-Core can also enforce governance at git/CI boundaries:
 
 ```text
 ssd-core guard --root my-app --require-active-change --strict-state
+ssd-core guard --root my-app --require-execution-evidence
 ssd-core install-hooks --root my-app
 ```
 
-`guard` fails when the repository foundation is invalid, a workflow is blocked, an archived delta was not synced into living specs, the policy requires an active `.sdd/changes/*` record and none exists, or strict state finds stale artifact checksums.
+`guard` fails when the repository foundation is invalid, a workflow is blocked, an archived delta was not synced into living specs, the policy requires an active `.sdd/changes/*` record and none exists, strict state finds stale artifact checksums, or execution evidence is required but missing.
 
 `install-hooks` writes a pre-commit hook that runs:
 
@@ -244,6 +250,7 @@ ssd-core status --root <path>
 ssd-core new <change-id> --profile <profile> --title "Human intent" --root <path>
 ssd-core run <change-id> --profile <profile> --title "Human intent" --root <path>
 ssd-core transition <change-id> <phase> --root <path>
+ssd-core verify <change-id> --command "pytest -q" --root <path>
 ssd-core guard --require-active-change --strict-state --root <path>
 ssd-core install-hooks --root <path>
 ssd-core check <change-id> --root <path>
@@ -259,6 +266,7 @@ ssd-core archive <change-id> --root <path>
   agents/        portable role contracts
   archive/       completed change records
   changes/       active governed changes
+  evidence/      command execution logs and checksums
   profiles/      rigor levels by change type
   schemas/       metadata and evidence schemas
   skills/        portable workflow capabilities
@@ -339,7 +347,7 @@ See:
 
 ## Current Status
 
-Current release: `v0.1.7`
+Current release: `v0.3.0`
 
 Solid in v0.1:
 
@@ -353,6 +361,7 @@ Solid in v0.1:
 - importable strict orchestrator through `SDDWorkflow`
 - hard enforcement through `ssd-core guard` and git pre-commit hooks
 - explicit `.sdd/state.json` registry with validated phase transitions and artifact checksums
+- executable verification evidence through `ssd-core verify --command`
 
 Deferred to future versions:
 

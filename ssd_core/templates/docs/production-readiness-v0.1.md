@@ -43,7 +43,7 @@ Run these checks before tagging or publishing v0.1.x:
 python scripts/release_check.py
 ```
 
-The release check verifies version consistency, source validation, tests, package dry-run, isolated wheel install, installed CLI smoke tests, workflow binding through `ssd-core run`, explicit state enforcement through `.sdd/state.json`, hard enforcement through `ssd-core guard --strict-state` and `install-hooks`, npm wrapper smoke tests when Node/npm are available, caller-directory relative path behavior, and packaged template checks.
+The release check verifies version consistency, source validation, tests, package dry-run, isolated wheel install, installed CLI smoke tests, workflow binding through `ssd-core run`, explicit state enforcement through `.sdd/state.json`, executable verification evidence through `ssd-core verify --command`, hard enforcement through `ssd-core guard --strict-state` and `install-hooks`, npm wrapper smoke tests when Node/npm are available, caller-directory relative path behavior, and packaged template checks.
 
 On Debian/Ubuntu systems where `python3-venv` is not installed, the release check falls back to `uv venv --seed` when `uv` is available.
 

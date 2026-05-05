@@ -4,6 +4,7 @@ import contextlib
 import io
 import json
 import shutil
+import sys
 import tomllib
 import uuid
 import unittest
@@ -62,6 +63,7 @@ class SddToolingTests(unittest.TestCase):
 
         self.assertTrue(template_root.joinpath("sdd", "constitution.md").is_file())
         self.assertTrue(template_root.joinpath("sdd", "state.json").is_file())
+        self.assertTrue(template_root.joinpath("sdd", "evidence", ".gitkeep").is_file())
         self.assertTrue(template_root.joinpath("sdd", "adapters", "generic-markdown.json").is_file())
         self.assertTrue(template_root.joinpath("sdd", "adapters", "codex.json").is_file())
         self.assertTrue(template_root.joinpath("sdd", "adapters", "claude-code.json").is_file())
@@ -139,6 +141,7 @@ class SddToolingTests(unittest.TestCase):
         self.assertEqual(findings, [])
         self.assertTrue((root / ".sdd" / "constitution.md").is_file())
         self.assertTrue((root / ".sdd" / "state.json").is_file())
+        self.assertTrue((root / ".sdd" / "evidence").is_dir())
         self.assertTrue((root / ".sdd" / "adapters" / "generic-markdown.json").is_file())
         self.assertEqual(sdd.validate(root), [])
 
@@ -745,6 +748,99 @@ class SddToolingTests(unittest.TestCase):
         self.assertEqual(findings, [])
         self.assertEqual(sdd.declared_workflow_phase(root, change_id), sdd.WorkflowPhase.VERIFY)
 
+    def test_verify_change_executes_command_and_records_evidence(self) -> None:
+        root = REPO_ROOT / ".tmp-tests" / f"verify-exec-{uuid.uuid4().hex}"
+        change_id = "guard-login"
+
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(sdd.init_project(root), [])
+            self.assertEqual(sdd.create_change(root, change_id, "standard", "Guard login"), [])
+
+        change_dir = root / ".sdd" / "changes" / change_id
+        for filename in ["proposal.md", "delta-spec.md", "design.md", "archive.md"]:
+            path = change_dir / filename
+            path.write_text(path.read_text(encoding="utf-8").replace("status: draft", "status: ready"), encoding="utf-8")
+        tasks_path = change_dir / "tasks.md"
+        tasks_path.write_text(tasks_path.read_text(encoding="utf-8").replace("- [ ]", "- [x]"), encoding="utf-8")
+        tasks_path.write_text(tasks_path.read_text(encoding="utf-8").replace("status: draft", "status: ready"), encoding="utf-8")
+
+        with contextlib.redirect_stdout(io.StringIO()):
+            sdd.transition_workflow(root, change_id, sdd.WorkflowPhase.SPECIFY)
+            sdd.transition_workflow(root, change_id, sdd.WorkflowPhase.DESIGN)
+            sdd.transition_workflow(root, change_id, sdd.WorkflowPhase.TASK)
+
+        command = f'"{sys.executable}" -c "print(123)"'
+        with contextlib.redirect_stdout(io.StringIO()):
+            findings = sdd.verify_change(root, change_id, [command], require_command=True)
+
+        self.assertEqual(findings, [])
+        self.assertEqual(sdd.declared_workflow_phase(root, change_id), sdd.WorkflowPhase.VERIFY)
+        self.assertEqual(sdd.validate_execution_evidence(root, change_id), [])
+        evidence_path = root / ".sdd" / "evidence" / change_id / "verification.jsonl"
+        self.assertTrue(evidence_path.is_file())
+        records = [json.loads(line) for line in evidence_path.read_text(encoding="utf-8").splitlines()]
+        self.assertTrue(records[0]["passed"])
+        verification_text = (change_dir / "verification.md").read_text(encoding="utf-8")
+        self.assertIn("status: verified", verification_text)
+        self.assertIn("Execution Evidence", verification_text)
+
+    def test_workflow_engine_execute_runs_verify_command(self) -> None:
+        root = REPO_ROOT / ".tmp-tests" / f"engine-exec-{uuid.uuid4().hex}"
+        change_id = "guard-login"
+
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(sdd.init_project(root), [])
+            self.assertEqual(sdd.create_change(root, change_id, "standard", "Guard login"), [])
+
+        change_dir = root / ".sdd" / "changes" / change_id
+        for filename in ["proposal.md", "delta-spec.md", "design.md"]:
+            path = change_dir / filename
+            path.write_text(path.read_text(encoding="utf-8").replace("status: draft", "status: ready"), encoding="utf-8")
+        tasks_path = change_dir / "tasks.md"
+        tasks_path.write_text(tasks_path.read_text(encoding="utf-8").replace("- [ ]", "- [x]"), encoding="utf-8")
+        tasks_path.write_text(tasks_path.read_text(encoding="utf-8").replace("status: draft", "status: ready"), encoding="utf-8")
+
+        with contextlib.redirect_stdout(io.StringIO()):
+            sdd.transition_workflow(root, change_id, sdd.WorkflowPhase.SPECIFY)
+            sdd.transition_workflow(root, change_id, sdd.WorkflowPhase.DESIGN)
+            sdd.transition_workflow(root, change_id, sdd.WorkflowPhase.TASK)
+
+        engine = sdd.WorkflowEngine(root)
+        command = f'"{sys.executable}" -c "print(456)"'
+        with contextlib.redirect_stdout(io.StringIO()):
+            findings = engine.execute(change_id, "verify", verification_commands=[command], require_command=True)
+
+        self.assertEqual(findings, [])
+        self.assertEqual(sdd.declared_workflow_phase(root, change_id), sdd.WorkflowPhase.VERIFY)
+
+    def test_verify_change_blocks_failed_execution_command(self) -> None:
+        root = REPO_ROOT / ".tmp-tests" / f"verify-exec-fail-{uuid.uuid4().hex}"
+        change_id = "guard-login"
+
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(sdd.init_project(root), [])
+            self.assertEqual(sdd.create_change(root, change_id, "standard", "Guard login"), [])
+
+        change_dir = root / ".sdd" / "changes" / change_id
+        for filename in ["proposal.md", "delta-spec.md", "design.md"]:
+            path = change_dir / filename
+            path.write_text(path.read_text(encoding="utf-8").replace("status: draft", "status: ready"), encoding="utf-8")
+        tasks_path = change_dir / "tasks.md"
+        tasks_path.write_text(tasks_path.read_text(encoding="utf-8").replace("- [ ]", "- [x]"), encoding="utf-8")
+        tasks_path.write_text(tasks_path.read_text(encoding="utf-8").replace("status: draft", "status: ready"), encoding="utf-8")
+
+        with contextlib.redirect_stdout(io.StringIO()):
+            sdd.transition_workflow(root, change_id, sdd.WorkflowPhase.SPECIFY)
+            sdd.transition_workflow(root, change_id, sdd.WorkflowPhase.DESIGN)
+            sdd.transition_workflow(root, change_id, sdd.WorkflowPhase.TASK)
+
+        command = f'"{sys.executable}" -c "import sys; sys.exit(7)"'
+        findings = sdd.verify_change(root, change_id, [command], require_command=True)
+
+        self.assertEqual(len(findings), 1)
+        self.assertIn("verification command failed", findings[0].message)
+        self.assertEqual(sdd.declared_workflow_phase(root, change_id), sdd.WorkflowPhase.TASK)
+
     def test_validate_verification_evidence_blocks_placeholder_commands_section(self) -> None:
         root = REPO_ROOT / ".tmp-tests" / f"evidence-placeholder-{uuid.uuid4().hex}"
         change_id = "guard-login"
@@ -762,6 +858,7 @@ class SddToolingTests(unittest.TestCase):
     def test_public_verify_change_is_exported(self) -> None:
         self.assertIs(ssd_core.verify_change, sdd.verify_change)
         self.assertIs(ssd_core.validate_verification_evidence, sdd.validate_verification_evidence)
+        self.assertIs(ssd_core.validate_execution_evidence, sdd.validate_execution_evidence)
 
     def test_gate_command_is_exported(self) -> None:
         self.assertIs(ssd_core.gate_command, sdd.gate_command)
