@@ -32,7 +32,7 @@ function runPython(command, prefixArgs) {
     : packageRoot;
 
   return spawnSync(command, [...prefixArgs, "-m", "ssd_core", ...args], {
-    cwd: packageRoot,
+    cwd: process.cwd(),
     env,
     stdio: "inherit"
   });

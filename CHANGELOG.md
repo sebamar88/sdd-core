@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.1.1 - 2026-05-05
+
+- Fixed the npm wrapper so relative `--root` paths resolve from the caller's current directory instead of the installed package directory.
+- Added a release gate that smoke-tests npm-installed wrapper behavior with a relative project root.
 - Aligned production-readiness wording with v0.1 scope: concrete adapter manifests are included, executable runtime wrappers are deferred.
 - Added explicit DRY, KISS, YAGNI, SOLID, GRASP, and LoD principles to project guidance and constitutions.
 - Hardened frontmatter validation with ISO date checks and consistency checks for change and living spec artifacts.

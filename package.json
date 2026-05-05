@@ -1,6 +1,6 @@
 {
   "name": "ssd-core",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Portable spec-driven development framework for any agent and operating system.",
   "license": "MIT",
   "homepage": "https://github.com/sebamar88/sdd-core#readme",

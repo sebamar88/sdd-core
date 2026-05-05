@@ -43,7 +43,7 @@ Run these checks before tagging or publishing v0.1.x:
 python scripts/release_check.py
 ```
 
-The release check verifies version consistency, source validation, tests, package dry-run, isolated wheel install, installed CLI smoke tests, npm wrapper smoke tests when Node/npm are available, and packaged template checks.
+The release check verifies version consistency, source validation, tests, package dry-run, isolated wheel install, installed CLI smoke tests, npm wrapper smoke tests when Node/npm are available, caller-directory relative path behavior, and packaged template checks.
 
 On Debian/Ubuntu systems where `python3-venv` is not installed, the release check falls back to `uv venv --seed` when `uv` is available.
 
