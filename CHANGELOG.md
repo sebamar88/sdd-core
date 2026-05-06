@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.10.0 - 2026-05-06
+
+- Moved `write_ci_template`, `_CI_TEMPLATES`, `_GITHUB_ACTIONS_TEMPLATE`, and `_GITLAB_CI_TEMPLATE` from `_render.py` to `_workflow.py`. These are file-I/O operations that return `list[Finding]`, not presentation layer concerns. `_render.py` is now a pure presentation module — it only contains `print_*` functions and `run_demo`/`run_fast_demo`. No behavioral changes; public API is unchanged.
+- Added 9 new tests (74 total) covering the `auto --loop` engine and execution-evidence integrity: auto-advance pauses at PROPOSE when proposal is not ready; transitions to TASK when proposal is ready; pauses at TASK (cannot auto-advance to VERIFY, which requires explicit `verify_change`); full lifecycle advances to ARCHIVED after verify; cannot skip VERIFY phase; evidence records contain all required fields (`schema`, `command`, `exit_code`, `passed`, `recorded_at`, `log_path`, `output_checksum`, `duration_seconds`); tampered evidence log fails SHA-256 integrity check; failed command records evidence and blocks verify.
+
 ## 0.9.0 - 2026-05-05
 
 - Split monolithic `ssd_core/cli.py` (3845 lines) into four focused modules with a clean dependency chain:

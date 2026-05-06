@@ -13,7 +13,7 @@ from ._render import *  # noqa: F401, F403
 # Private names with leading underscore are not exported by *, import explicitly.
 from ._types import _PHASE_ICON  # noqa: F401
 from ._workflow import _PHASE_ARTIFACT_FILE, _auto_advance  # noqa: F401
-from ._render import _CI_TEMPLATES  # noqa: F401
+from ._workflow import _CI_TEMPLATES  # noqa: F401
 
 
 

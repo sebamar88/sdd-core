@@ -49,7 +49,7 @@ class SddToolingTests(unittest.TestCase):
             self.record_transition(root, change_id, phase)
 
     def test_version_is_defined(self) -> None:
-        self.assertEqual(sdd.VERSION, "0.9.0")
+        self.assertEqual(sdd.VERSION, "0.10.0")
 
     def test_distribution_versions_match(self) -> None:
         pyproject = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
@@ -1178,6 +1178,205 @@ class SddToolingTests(unittest.TestCase):
         blocked = sdd.transition_workflow(root, change_id, sdd.WorkflowPhase.DESIGN)
         self.assertTrue(blocked.is_blocked)
         self.assertTrue(any("artifact phase" in finding.message for finding in blocked.findings))
+
+    # ── auto loop tests ───────────────────────────────────────────────────────
+
+    def _make_quick_change(self, root: Path, change_id: str) -> Path:
+        """Init repo and create a *quick* profile change. Return the change dir."""
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(sdd.init_project(root), [])
+            self.assertEqual(sdd.create_change(root, change_id, "quick", "Test change"), [])
+        return root / ".sdd" / "changes" / change_id
+
+    def _fill_proposal(self, change_dir: Path) -> None:
+        p = change_dir / "proposal.md"
+        text = p.read_text(encoding="utf-8")
+        text = sdd.set_frontmatter_value(text, "status", "ready")
+        p.write_text(text, encoding="utf-8")
+
+    def _fill_tasks(self, change_dir: Path) -> None:
+        p = change_dir / "tasks.md"
+        text = p.read_text(encoding="utf-8").replace("- [ ]", "- [x]")
+        text = sdd.set_frontmatter_value(text, "status", "ready")
+        p.write_text(text, encoding="utf-8")
+
+    def _advance_to_task(self, root: Path, change_id: str, change_dir: Path) -> None:
+        """Fill artifacts and drain auto loop until it pauses at TASK (verify gate)."""
+        self._fill_proposal(change_dir)
+        self._fill_tasks(change_dir)
+        with contextlib.redirect_stdout(io.StringIO()):
+            for _ in range(20):
+                result = sdd._auto_advance(root, change_id)
+                if result.needs_human_work or result.step.is_complete or not result.executed_command:
+                    break
+        self.assertEqual(result.step.phase, sdd.WorkflowPhase.TASK)
+
+    def test_auto_advance_pauses_at_propose_when_artifacts_not_ready(self) -> None:
+        root = REPO_ROOT / ".tmp-tests" / f"auto-pause-{uuid.uuid4().hex}"
+        change_id = "auto-pause-test"
+        self._make_quick_change(root, change_id)
+
+        result = sdd._auto_advance(root, change_id)
+
+        self.assertTrue(result.needs_human_work)
+        self.assertEqual(result.step.phase, sdd.WorkflowPhase.PROPOSE)
+        self.assertIsNone(result.executed_command)
+
+    def test_auto_advance_records_transition_when_proposal_ready(self) -> None:
+        root = REPO_ROOT / ".tmp-tests" / f"auto-transition-{uuid.uuid4().hex}"
+        change_id = "auto-trans-test"
+        change_dir = self._make_quick_change(root, change_id)
+        self._fill_proposal(change_dir)
+
+        result = sdd._auto_advance(root, change_id)
+
+        self.assertIsNotNone(result.executed_command)
+        self.assertIn("transition", result.executed_command)
+        self.assertFalse(result.needs_human_work)
+
+    def test_auto_loop_pauses_at_task_when_verify_required(self) -> None:
+        """After tasks are done the loop must stop at TASK — VERIFY requires verify_change."""
+        root = REPO_ROOT / ".tmp-tests" / f"auto-loop-task-{uuid.uuid4().hex}"
+        change_id = "auto-loop-task"
+        change_dir = self._make_quick_change(root, change_id)
+        self._fill_proposal(change_dir)
+        self._fill_tasks(change_dir)
+
+        steps = 0
+        with contextlib.redirect_stdout(io.StringIO()):
+            while True:
+                result = sdd._auto_advance(root, change_id)
+                if result.executed_command:
+                    steps += 1
+                if result.needs_human_work or result.step.is_complete or not result.executed_command:
+                    break
+
+        # Loop stops at TASK; VERIFY is a restricted phase requiring verify_change.
+        self.assertTrue(result.needs_human_work)
+        self.assertEqual(result.step.phase, sdd.WorkflowPhase.TASK)
+        self.assertGreater(steps, 0, "at least one transition should have executed")
+
+    def test_auto_loop_archives_after_verify(self) -> None:
+        """Full lifecycle: init → fill → verify → auto closes."""
+        root = REPO_ROOT / ".tmp-tests" / f"auto-full-{uuid.uuid4().hex}"
+        change_id = "auto-full-lifecycle"
+        change_dir = self._make_quick_change(root, change_id)
+        self._advance_to_task(root, change_id, change_dir)
+
+        # Record verification with real evidence.
+        with contextlib.redirect_stdout(io.StringIO()):
+            findings = sdd.verify_change(root, change_id, ["echo loop-verified"])
+        self.assertEqual(findings, [])
+
+        # Loop should now close the change (archive).
+        steps = 0
+        with contextlib.redirect_stdout(io.StringIO()):
+            while True:
+                result = sdd._auto_advance(root, change_id)
+                if result.executed_command:
+                    steps += 1
+                if result.needs_human_work or result.step.is_complete or result.step.is_blocked or not result.executed_command:
+                    break
+
+        self.assertTrue(result.step.is_complete)
+        self.assertGreater(steps, 0)
+        archive_root = root / ".sdd" / "archive"
+        archived = [p for p in archive_root.iterdir() if p.is_dir()]
+        self.assertEqual(len(archived), 1)
+
+    def test_auto_advance_cannot_skip_verify_phase(self) -> None:
+        """Tasks done → loop stops at TASK. ARCHIVE must never appear without VERIFY."""
+        root = REPO_ROOT / ".tmp-tests" / f"auto-no-skip-verify-{uuid.uuid4().hex}"
+        change_id = "auto-no-skip"
+        change_dir = self._make_quick_change(root, change_id)
+        self._fill_proposal(change_dir)
+        self._fill_tasks(change_dir)
+
+        phases_seen: list[sdd.WorkflowPhase] = []
+        with contextlib.redirect_stdout(io.StringIO()):
+            for _ in range(20):
+                result = sdd._auto_advance(root, change_id)
+                phases_seen.append(result.step.phase)
+                if result.needs_human_work or result.step.is_complete or not result.executed_command:
+                    break
+
+        # Loop stops at TASK; ARCHIVE/ARCHIVED must never be reached without verify_change.
+        self.assertEqual(phases_seen[-1], sdd.WorkflowPhase.TASK)
+        self.assertNotIn(sdd.WorkflowPhase.ARCHIVE, phases_seen)
+        self.assertNotIn(sdd.WorkflowPhase.ARCHIVED, phases_seen)
+
+    def test_execution_evidence_record_has_required_fields(self) -> None:
+        """Verify the evidence JSON contains all required fields."""
+        root = REPO_ROOT / ".tmp-tests" / f"evidence-schema-{uuid.uuid4().hex}"
+        change_id = "evidence-schema"
+        change_dir = self._make_quick_change(root, change_id)
+        self._advance_to_task(root, change_id, change_dir)
+        with contextlib.redirect_stdout(io.StringIO()):
+            findings = sdd.verify_change(root, change_id, ["echo evidence-fields"])
+        self.assertEqual(findings, [])
+
+        records, findings = sdd.execution_evidence_records(root, change_id)
+        self.assertEqual(findings, [])
+        self.assertGreater(len(records), 0)
+
+        rec = records[0]
+        for field in ("schema", "id", "change_id", "phase", "command", "exit_code",
+                      "passed", "recorded_at", "log_path", "output_checksum", "duration_seconds"):
+            self.assertIn(field, rec, f"missing field: {field}")
+        self.assertEqual(rec["schema"], "sdd.execution-evidence.v1")
+        self.assertEqual(rec["command"], "echo evidence-fields")
+        self.assertEqual(rec["exit_code"], 0)
+        self.assertTrue(rec["passed"])
+        self.assertIsInstance(rec["duration_seconds"], float)
+
+    def test_execution_evidence_log_file_is_checksummed(self) -> None:
+        """The output log exists and its SHA-256 matches output_checksum."""
+        import hashlib
+        root = REPO_ROOT / ".tmp-tests" / f"evidence-checksum-{uuid.uuid4().hex}"
+        change_id = "evidence-checksum"
+        change_dir = self._make_quick_change(root, change_id)
+        self._advance_to_task(root, change_id, change_dir)
+        with contextlib.redirect_stdout(io.StringIO()):
+            sdd.verify_change(root, change_id, ["echo checksum-target"])
+
+        records, _ = sdd.execution_evidence_records(root, change_id)
+        self.assertGreater(len(records), 0)
+        rec = records[0]
+        log_path = root / rec["log_path"]
+        self.assertTrue(log_path.is_file())
+        actual = hashlib.sha256(log_path.read_text(encoding="utf-8").encode()).hexdigest()
+        self.assertEqual(actual, rec["output_checksum"])
+
+    def test_tampered_evidence_log_fails_validation(self) -> None:
+        """Modifying the log after recording must fail validate_execution_evidence."""
+        root = REPO_ROOT / ".tmp-tests" / f"evidence-tamper-{uuid.uuid4().hex}"
+        change_id = "evidence-tamper"
+        change_dir = self._make_quick_change(root, change_id)
+        self._advance_to_task(root, change_id, change_dir)
+        with contextlib.redirect_stdout(io.StringIO()):
+            sdd.verify_change(root, change_id, ["echo tamper-me"])
+
+        records, _ = sdd.execution_evidence_records(root, change_id)
+        log_path = root / records[0]["log_path"]
+        log_path.write_text("tampered content", encoding="utf-8")
+
+        findings = sdd.validate_execution_evidence(root, change_id)
+        self.assertTrue(any("checksum" in f.message for f in findings))
+
+    def test_failed_command_records_evidence_and_blocks_verify(self) -> None:
+        """A non-zero exit code must record evidence AND return a blocking finding."""
+        root = REPO_ROOT / ".tmp-tests" / f"evidence-fail-{uuid.uuid4().hex}"
+        change_id = "evidence-fail"
+        change_dir = self._make_quick_change(root, change_id)
+        self._advance_to_task(root, change_id, change_dir)
+        fail_cmd = f'"{sys.executable}" -c "import sys; sys.exit(1)"'
+        with contextlib.redirect_stdout(io.StringIO()):
+            findings = sdd.verify_change(root, change_id, [fail_cmd])
+
+        self.assertTrue(any(f.severity == "error" for f in findings))
+        # Evidence must still have been recorded despite failure.
+        records, _ = sdd.execution_evidence_records(root, change_id)
+        self.assertTrue(any(r["command"] == fail_cmd and not r["passed"] for r in records))
 
 
 if __name__ == "__main__":
