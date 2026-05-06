@@ -8,7 +8,7 @@ from enum import Enum
 from pathlib import Path
 from typing import ClassVar, Iterable, Protocol
 
-VERSION = "0.14.0"
+VERSION = "0.15.0"
 
 
 # ── Terminal color helpers ───────────────────────────────────────────────────
@@ -186,11 +186,11 @@ MATRIX_PASSING_ROW_PATTERN = re.compile(
 
 # Terms that indicate placeholder evidence in verification.md.
 # If any appear in a verification artifact, it cannot be recorded as verified.
-VERIFICATION_EVIDENCE_BLOCKERS = [
+VERIFICATION_EVIDENCE_BLOCKERS: frozenset[str] = frozenset({
     "not-run",
     "pending verification evidence",
     "record host-project verification actions.",
-]
+})
 
 
 class TemplateResource(Protocol):

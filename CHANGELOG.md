@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.15.0 - 2026-05-06
+
+Code review fixes — 8 issues found, all resolved (83 tests pass):
+
+- **Critical: `NameError` on `ssd-core evidence`** — `hashlib` was not imported in `_render.py`. `print_evidence()` would crash with `NameError: name 'hashlib' is not defined` whenever a valid log file was present. Added `import hashlib` to `_render.py`.
+- **Critical: `NameError` on `ssd-core transition` (success path)** — `workflow_registry_path` was missing from the `from ._workflow import (...)` block in `_render.py`. `print_transition()` crashed on the success path. Added `workflow_registry_path` to the import block.
+- **Bug: `_pyproject_has_pytest` false-positive** — `[tool.setuptools]` in `pyproject.toml` was incorrectly treated as signal for pytest. A project using setuptools without pytest would trigger `python -m pytest` discovery even if pytest was not installed. Removed the `[tool.setuptools]` check.
+- **Warning: overbroad `str.replace("not-run", "pass")`** — `append_execution_evidence_to_verification()` replaced every occurrence of `"not-run"` in the document, including user prose that happened to contain that term. Replaced with `re.sub(r"(\|\s*)not-run(\s*\|)", ...)` so only table cell values are substituted.
+- **Minor: duplicate code block in `_auto_advance`** — the `if target == SYNC_SPECS or target == ARCHIVE:` branch and its `else` were identical Python code. Collapsed into a single block with a clarifying comment.
+- **Minor: `VERIFICATION_EVIDENCE_BLOCKERS` typed as mutable list** — changed to `frozenset[str]` to communicate intent and prevent accidental mutation.
+- **Minor: magic number `25` in `record_workflow_state`** — extracted to `_MAX_HISTORY_ENTRIES = 25` module-level constant.
+- **Minor: non-deterministic test fixture path** — `test_init_project_creates_valid_foundation_in_new_root` used a fixed path `"init-fixture"` instead of a uuid-suffixed path like every other test. Fixed to `f"init-fixture-{uuid.uuid4().hex}"`.
+
 ## 0.14.0 - 2026-05-06
 
 Failure golden path — the system proof's counterpart (83 tests total):

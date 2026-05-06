@@ -1,6 +1,6 @@
 {
   "name": "ssd-core",
-  "version": "0.14.0",
+  "version": "0.15.0",
   "description": "AI development governance engine — prevent hallucinated completion and vanishing intent in agent-assisted software teams.",
   "license": "MIT",
   "homepage": "https://github.com/sebamar88/sdd-core#readme",

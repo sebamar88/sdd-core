@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import tempfile
 from pathlib import Path
 
@@ -53,6 +54,7 @@ from ._workflow import (
     validate_change_id,
     read_workflow_registry,
     state_entry,
+    workflow_registry_path,
     WorkflowEngine,
     AutoStep,
     EngineStep,

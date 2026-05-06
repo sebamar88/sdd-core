@@ -685,7 +685,7 @@ def append_execution_evidence_to_verification(root: Path, verification_path: Pat
     text = set_frontmatter_value(text, "status", "verified")
     text = set_frontmatter_value(text, "updated", date.today().isoformat())
     text = text.replace("pending verification evidence", "execution evidence recorded")
-    text = text.replace("not-run", "pass")
+    text = re.sub(r"(\|\s*)not-run(\s*\|)", r"\1pass\2", text)
     text = text.replace("Record host-project verification actions.", "Recorded by `ssd-core verify --command`.")
 
     lines = ["", "## Execution Evidence", ""]
@@ -970,7 +970,7 @@ def _pyproject_has_pytest(root: Path) -> bool:
         return False
     try:
         content = pyproject.read_text(encoding="utf-8")
-        return "[tool.pytest" in content or "[tool.setuptools" in content
+        return "[tool.pytest" in content
     except OSError:
         return False
 
@@ -1190,6 +1190,9 @@ def state_entry(registry: dict[str, object], change_id: str) -> dict[str, object
     return entry if isinstance(entry, dict) else None
 
 
+_MAX_HISTORY_ENTRIES = 25  # cap state.json per-change history to bound file size
+
+
 def record_workflow_state(root: Path, state: WorkflowState, action: str) -> None:
     if state.phase in {WorkflowPhase.NOT_STARTED, WorkflowPhase.BLOCKED}:
         return
@@ -1217,7 +1220,7 @@ def record_workflow_state(root: Path, state: WorkflowState, action: str) -> None
         "profile": state.profile,
         "updated": today,
         "checksum": checksum,
-        "history": history[-25:],
+        "history": history[-_MAX_HISTORY_ENTRIES:],
     }
     write_workflow_registry(root, registry)
 
@@ -2194,14 +2197,9 @@ def _auto_advance(root: Path, change_id: str) -> "AutoStep":
             default=None,
         )
         if target is not None:
-            if target == WorkflowPhase.SYNC_SPECS or target == WorkflowPhase.ARCHIVE:
-                # Record the phase transition first; the next execute_next / auto call
-                # enters the direct-execute path above which then runs sync_specs /
-                # archive_change with the correct declared phase in state.json.
-                new_state = transition_workflow(root, change_id, target)
-                if new_state.is_blocked:
-                    return AutoStep(executed_command=None, step=current_step())
-                return AutoStep(executed_command=f"transition {change_id} {target.value}", step=current_step())
+            # For SYNC_SPECS / ARCHIVE: records the transition so the next call
+            # enters the direct-execute path with the correct declared phase.
+            # For all other eligible phases: records the transition directly.
             new_state = transition_workflow(root, change_id, target)
             if new_state.is_blocked:
                 return AutoStep(executed_command=None, step=current_step())
