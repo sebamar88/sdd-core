@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.19.0 - 2026-05-06
+
+**Brownfield Bootstrap (112 tests pass)**
+
+New `discover_repository()` and `bootstrap_change()` API for onboarding existing codebases.
+
+- **`discover_repository(root)`** — detects languages (`python`, `node`, `rust`, `go`, `java`) from manifest signal files; detects CI presence (GitHub Actions, GitLab CI, CircleCI, Jenkins, Travis); returns a `RepositoryInfo` frozen dataclass with `languages`, `test_command`, `has_ci`, `has_sdd`.
+- **`bootstrap_change(root, title, *, profile)`** — slugifies *title* into a change-id and calls `create_change()`. Returns `(change_id, findings)`; returns an error Finding if `.sdd/` has not been initialized.
+- **`RepositoryInfo`** — new frozen dataclass added to `_types.py` and re-exported from the public API.
+
 ## 0.18.0 - 2026-05-06
 
 **Persistent Project Memory (106 tests pass)**

@@ -58,7 +58,7 @@ class SddToolingTests(unittest.TestCase):
             self.record_transition(root, change_id, phase)
 
     def test_version_is_defined(self) -> None:
-        self.assertEqual(sdd.VERSION, "0.18.0")
+        self.assertEqual(sdd.VERSION, "0.19.0")
 
     def test_distribution_versions_match(self) -> None:
         pyproject = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
@@ -2102,6 +2102,51 @@ class SddToolingTests(unittest.TestCase):
         with contextlib.redirect_stdout(io.StringIO()) as buf:
             sdd.print_status(root)
         self.assertIn("memory", buf.getvalue().lower())
+
+    # ── v0.19.0: Brownfield Bootstrap ─────────────────────────────────────
+
+    def test_discover_repository_detects_python(self) -> None:
+        root = REPO_ROOT / ".tmp-tests" / f"disc-py-{uuid.uuid4().hex}"
+        root.mkdir(parents=True)
+        (root / "pyproject.toml").write_text("[tool.pytest.ini_options]\n", encoding="utf-8")
+        info = sdd.discover_repository(root)
+        self.assertIn("python", info.languages)
+
+    def test_discover_repository_detects_node(self) -> None:
+        root = REPO_ROOT / ".tmp-tests" / f"disc-node-{uuid.uuid4().hex}"
+        root.mkdir(parents=True)
+        (root / "package.json").write_text('{"name":"x","scripts":{"test":"jest"}}\n', encoding="utf-8")
+        info = sdd.discover_repository(root)
+        self.assertIn("node", info.languages)
+
+    def test_discover_repository_detects_rust(self) -> None:
+        root = REPO_ROOT / ".tmp-tests" / f"disc-rust-{uuid.uuid4().hex}"
+        root.mkdir(parents=True)
+        (root / "Cargo.toml").write_text("[package]\nname = \"x\"\n", encoding="utf-8")
+        info = sdd.discover_repository(root)
+        self.assertIn("rust", info.languages)
+
+    def test_discover_repository_empty_project_has_no_languages(self) -> None:
+        root = REPO_ROOT / ".tmp-tests" / f"disc-empty-{uuid.uuid4().hex}"
+        root.mkdir(parents=True)
+        info = sdd.discover_repository(root)
+        self.assertEqual(list(info.languages), [])
+
+    def test_bootstrap_change_creates_scaffold(self) -> None:
+        root = REPO_ROOT / ".tmp-tests" / f"boot-{uuid.uuid4().hex}"
+        with contextlib.redirect_stdout(io.StringIO()):
+            sdd.init_project(root)
+        with contextlib.redirect_stdout(io.StringIO()):
+            change_id, findings = sdd.bootstrap_change(root, "Add brownfield support")
+        self.assertEqual(findings, [])
+        self.assertTrue((root / ".sdd" / "changes" / change_id).is_dir())
+
+    def test_bootstrap_change_requires_initialized_root(self) -> None:
+        root = REPO_ROOT / ".tmp-tests" / f"boot-uninit-{uuid.uuid4().hex}"
+        root.mkdir(parents=True)
+        with contextlib.redirect_stdout(io.StringIO()):
+            _change_id, findings = sdd.bootstrap_change(root, "Should fail")
+        self.assertTrue(any(f.severity == "error" for f in findings))
 
 
 if __name__ == "__main__":

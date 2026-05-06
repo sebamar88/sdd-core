@@ -18,6 +18,7 @@ from typing import ClassVar, Iterable, Protocol
 from ._types import (
     VERSION,
     Finding,
+    RepositoryInfo,
     ChangeSummary,
     WorkflowPhase,
     WorkflowFailureKind,
@@ -1198,6 +1199,89 @@ def _pyproject_has_pytest(root: Path) -> bool:
 
 def change_has_delta_spec(change_dir: Path) -> bool:
     return (change_dir / "delta-spec.md").is_file()
+
+
+def discover_repository(root: Path) -> RepositoryInfo:
+    """Detect languages, CI presence, and test command for an existing repository.
+
+    Language detection is signal-file based (no shell execution required):
+
+    - ``python``  — ``pyproject.toml``, ``setup.py``, ``setup.cfg``, or ``requirements.txt``
+    - ``node``    — ``package.json``
+    - ``rust``    — ``Cargo.toml``
+    - ``go``      — ``go.mod``
+    - ``java``    — ``pom.xml`` or ``build.gradle``
+    """
+    languages: list[str] = []
+
+    py_signals = ["pyproject.toml", "setup.py", "setup.cfg", "requirements.txt"]
+    if any((root / f).exists() for f in py_signals):
+        languages.append("python")
+
+    if (root / "package.json").exists():
+        languages.append("node")
+
+    if (root / "Cargo.toml").exists():
+        languages.append("rust")
+
+    if (root / "go.mod").exists():
+        languages.append("go")
+
+    if (root / "pom.xml").exists() or (root / "build.gradle").exists():
+        languages.append("java")
+
+    ci_signals = [
+        ".github/workflows",
+        ".gitlab-ci.yml",
+        ".circleci/config.yml",
+        "Jenkinsfile",
+        ".travis.yml",
+    ]
+    has_ci = any((root / s).exists() for s in ci_signals)
+    has_sdd = (root / ".sdd").is_dir()
+    test_cmd = discover_test_command(root)
+
+    return RepositoryInfo(
+        languages=tuple(languages),
+        test_command=test_cmd,
+        has_ci=has_ci,
+        has_sdd=has_sdd,
+    )
+
+
+def bootstrap_change(
+    root: Path,
+    title: str,
+    *,
+    profile: str = "standard",
+) -> tuple[str, list[Finding]]:
+    """Create a change scaffold for an existing (brownfield) project.
+
+    Unlike :func:`create_change`, ``bootstrap_change`` auto-generates a
+    slug-based change-id from *title* and validates that ``.sdd/`` is
+    already initialized before writing any files.
+
+    Returns ``(change_id, findings)``; findings is empty on success.
+    """
+    if not (root / ".sdd").is_dir():
+        return (
+            "",
+            [Finding("error", root / ".sdd", ".sdd directory not found — run 'sdd-core init' first")],
+        )
+
+    # Build a URL-safe slug from the title.
+    slug_base = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-") or "change"
+    slug_base = slug_base[:40]
+    change_id = slug_base
+
+    # Ensure uniqueness if the id already exists.
+    changes_dir = root / ".sdd" / "changes"
+    if (changes_dir / change_id).exists():
+        suffix = uuid.uuid4().hex[:6]
+        change_id = f"{slug_base}-{suffix}"
+
+    findings = create_change(root, change_id, profile, title)
+    return (change_id if not findings else "", findings)
 
 
 def living_spec_path(root: Path, change_id: str) -> Path:

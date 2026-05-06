@@ -8,7 +8,7 @@ from enum import Enum
 from pathlib import Path
 from typing import ClassVar, Iterable, Protocol
 
-VERSION = "0.18.0"
+VERSION = "0.19.0"
 
 
 # ── Terminal color helpers ───────────────────────────────────────────────────
@@ -232,6 +232,16 @@ class Finding:
             except ValueError:
                 location = f"{self.path}: "
         return f"{self.severity.upper()}: {location}{self.message}"
+
+
+@dataclass(frozen=True)
+class RepositoryInfo:
+    """Detected characteristics of an existing repository."""
+
+    languages: tuple[str, ...]
+    test_command: str | None
+    has_ci: bool
+    has_sdd: bool
 
 
 @dataclass(frozen=True)
