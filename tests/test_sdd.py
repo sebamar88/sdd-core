@@ -49,7 +49,7 @@ class SddToolingTests(unittest.TestCase):
             self.record_transition(root, change_id, phase)
 
     def test_version_is_defined(self) -> None:
-        self.assertEqual(sdd.VERSION, "0.11.0")
+        self.assertEqual(sdd.VERSION, "0.12.0")
 
     def test_distribution_versions_match(self) -> None:
         pyproject = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
@@ -1432,6 +1432,104 @@ class SddToolingTests(unittest.TestCase):
         log_path = root / rec["log_path"]
         log_content = log_path.read_text(encoding="utf-8")
         self.assertIn(sentinel, log_content)
+
+    # ── Anti-hallucination: lie detection tests ───────────────────────────────
+
+    def test_require_command_flag_blocks_verify_when_no_commands_given(self) -> None:
+        """When CI policy sets require_command=True, passing zero commands must block.
+
+        This is the enforcement path of `ssd-core verify --require-command`:
+        an agent cannot skip execution evidence simply by omitting --command.
+        """
+        root = REPO_ROOT / ".tmp-tests" / f"lie-nocommand-{uuid.uuid4().hex}"
+        change_id = "lie-nocommand"
+        change_dir = self._make_quick_change(root, change_id)
+        self._advance_to_task(root, change_id, change_dir)
+
+        findings = sdd.verify_change(root, change_id, [], require_command=True)
+
+        self.assertTrue(any(f.severity == "error" for f in findings))
+        self.assertTrue(any("--command" in f.message or "command" in f.message.lower() for f in findings))
+        # Phase must NOT advance — still at TASK.
+        self.assertEqual(sdd.declared_workflow_phase(root, change_id), sdd.WorkflowPhase.TASK)
+
+    def test_guard_require_evidence_catches_verify_without_command(self) -> None:
+        """Core anti-hallucination guarantee: guard catches an agent that claims
+        'I ran the tests' by manually writing a perfect verification.md but never
+        executing any command.
+
+        Scenario:
+          1. Agent advances to TASK.
+          2. Agent manually writes verification.md (status: verified, passing matrix,
+             no placeholder text) — looks legitimate.
+          3. verify_change() with no commands succeeds (manual evidence is allowed).
+          4. BUT: guard --require-execution-evidence BLOCKS.
+             This is the governance catch: the claim has no cryptographic proof.
+        """
+        root = REPO_ROOT / ".tmp-tests" / f"lie-noevidence-{uuid.uuid4().hex}"
+        change_id = "lie-noevidence"
+        change_dir = self._make_quick_change(root, change_id)
+        self._advance_to_task(root, change_id, change_dir)
+
+        # Manually write a verification.md that looks legitimate.
+        verification_path = change_dir / "verification.md"
+        text = verification_path.read_text(encoding="utf-8")
+        text = sdd.set_frontmatter_value(text, "status", "verified")
+        text = text.replace("pending verification evidence", "all tests passed manually")
+        text = text.replace("not-run", "pass")
+        text = text.replace("Record host-project verification actions.", "pytest -q exit 0")
+        verification_path.write_text(text, encoding="utf-8")
+
+        # verify_change without commands succeeds — manual evidence is accepted.
+        with contextlib.redirect_stdout(io.StringIO()):
+            findings = sdd.verify_change(root, change_id)
+        self.assertEqual(findings, [], "verify_change without commands should accept manual evidence")
+        self.assertEqual(sdd.declared_workflow_phase(root, change_id), sdd.WorkflowPhase.VERIFY)
+
+        # guard --require-execution-evidence CATCHES IT.
+        guard_findings = sdd.guard_repository(root, require_execution_evidence=True)
+        self.assertTrue(
+            any(f.severity == "error" for f in guard_findings),
+            "guard must block when no execution evidence exists",
+        )
+        self.assertTrue(
+            any("evidence" in f.message.lower() for f in guard_findings),
+            f"expected evidence-related error, got: {[f.message for f in guard_findings]}",
+        )
+
+    def test_partial_command_failure_blocks_verify_but_records_all_evidence(self) -> None:
+        """When multiple commands are given, ALL are run and ALL are recorded.
+        A single failure blocks verify — governance does not stop at the first pass.
+
+        This prevents the lie: 'the first test passed so the change is verified'
+        while a later, critical test was silently failing.
+        """
+        root = REPO_ROOT / ".tmp-tests" / f"lie-partial-{uuid.uuid4().hex}"
+        change_id = "lie-partial"
+        change_dir = self._make_quick_change(root, change_id)
+        self._advance_to_task(root, change_id, change_dir)
+
+        pass_cmd = f'"{sys.executable}" -c "print(\'ok\')"'
+        fail_cmd = f'"{sys.executable}" -c "import sys; sys.exit(3)"'
+        with contextlib.redirect_stdout(io.StringIO()):
+            findings = sdd.verify_change(root, change_id, [pass_cmd, fail_cmd])
+
+        # Verify is blocked.
+        self.assertTrue(any(f.severity == "error" for f in findings))
+        self.assertEqual(sdd.declared_workflow_phase(root, change_id), sdd.WorkflowPhase.TASK)
+
+        # BOTH commands were recorded — governance saw both.
+        records, _ = sdd.execution_evidence_records(root, change_id)
+        commands_recorded = {r["command"] for r in records}
+        self.assertIn(pass_cmd, commands_recorded, "passing command must still be recorded")
+        self.assertIn(fail_cmd, commands_recorded, "failing command must be recorded")
+
+        # The pass record is marked passed; the fail record is marked failed.
+        pass_rec = next(r for r in records if r["command"] == pass_cmd)
+        fail_rec = next(r for r in records if r["command"] == fail_cmd)
+        self.assertTrue(pass_rec["passed"])
+        self.assertFalse(fail_rec["passed"])
+        self.assertEqual(fail_rec["exit_code"], 3)
 
 
 if __name__ == "__main__":

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.12.0 - 2026-05-06
+
+Anti-hallucination lie detection tests — three narrative tests that prove the system's core guarantee (80 tests total):
+
+- **`test_require_command_flag_blocks_verify_when_no_commands_given`**: asserts that `verify_change(..., require_command=True)` with an empty command list returns an error and leaves the change at TASK. This is the enforcement path for CI policy (`ssd-core verify --require-command`): an agent cannot skip execution evidence by simply omitting `--command`.
+- **`test_guard_require_evidence_catches_verify_without_command`**: the core anti-hallucination test. Agent manually writes a legitimate-looking `verification.md` (correct status, no placeholders, passing matrix row) and calls `verify_change` without any commands — which succeeds, as manual evidence is accepted. Then `guard --require-execution-evidence` blocks with an evidence error. This is the "I ran the tests" lie caught by governance: the claim has no cryptographic proof.
+- **`test_partial_command_failure_blocks_verify_but_records_all_evidence`**: when multiple commands are given, ALL are executed and ALL are recorded in the evidence log — governance does not stop at the first pass. A single failure blocks verify. Asserts that both passing and failing records exist in the JSONL, with correct `passed` and `exit_code` values. This prevents the lie: "the first test passed so the change is verified" while a later, critical test was silently failing.
+
 ## 0.11.0 - 2026-05-06
 
 Execution truth hardening — three black-box behavioral tests close the last QA gap around evidence integrity (77 tests total):
