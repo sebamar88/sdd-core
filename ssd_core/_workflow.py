@@ -1249,6 +1249,37 @@ def discover_repository(root: Path) -> RepositoryInfo:
     )
 
 
+# Keyword scoring table for suggest_profile().
+# Each tuple is (keywords, profile).  The first profile whose keywords produce
+# the highest match score wins; ties are broken by list order.
+_PROFILE_KEYWORDS: list[tuple[tuple[str, ...], str]] = [
+    (("hotfix", "urgent", "critical", "emergency", "patch"), "quick"),
+    (("bug", "fix", "broken", "error", "crash", "regression", "issue", "defect"), "bugfix"),
+    (("refactor", "cleanup", "restructure", "reorganize", "simplify", "extract", "rename"), "refactor"),
+    (("research", "investigate", "explore", "evaluate", "spike", "poc", "proof of concept", "analysis"), "research"),
+    (("feature", "add", "implement", "build", "create", "new", "enhance", "improve"), "standard"),
+]
+
+
+def suggest_profile(title: str) -> str:
+    """Return the best-matching SDD profile name for a change *title*.
+
+    Uses a keyword scoring table with whole-word token matching.  The profile
+    whose keywords appear most often in the lower-cased title wins.  Ties are
+    broken by list order (more specific profiles listed first).  Falls back to
+    ``"standard"`` when no keywords match.
+    """
+    tokens: set[str] = set(re.findall(r"[a-z0-9]+", title.lower()))
+    best_profile = "standard"
+    best_score = 0
+    for keywords, candidate in _PROFILE_KEYWORDS:
+        score = sum(1 for kw in keywords if kw in tokens)
+        if score > best_score:
+            best_score = score
+            best_profile = candidate
+    return best_profile
+
+
 def bootstrap_change(
     root: Path,
     title: str,
@@ -1261,6 +1292,9 @@ def bootstrap_change(
     slug-based change-id from *title* and validates that ``.sdd/`` is
     already initialized before writing any files.
 
+    Pass ``profile="auto"`` to let :func:`suggest_profile` pick the best
+    profile based on the title keywords.
+
     Returns ``(change_id, findings)``; findings is empty on success.
     """
     if not (root / ".sdd").is_dir():
@@ -1268,6 +1302,8 @@ def bootstrap_change(
             "",
             [Finding("error", root / ".sdd", ".sdd directory not found — run 'sdd-core init' first")],
         )
+
+    resolved_profile = suggest_profile(title) if profile == "auto" else profile
 
     # Build a URL-safe slug from the title.
     slug_base = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-") or "change"
@@ -1280,7 +1316,7 @@ def bootstrap_change(
         suffix = uuid.uuid4().hex[:6]
         change_id = f"{slug_base}-{suffix}"
 
-    findings = create_change(root, change_id, profile, title)
+    findings = create_change(root, change_id, resolved_profile, title)
     return (change_id if not findings else "", findings)
 
 

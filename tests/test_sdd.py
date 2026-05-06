@@ -58,7 +58,7 @@ class SddToolingTests(unittest.TestCase):
             self.record_transition(root, change_id, phase)
 
     def test_version_is_defined(self) -> None:
-        self.assertEqual(sdd.VERSION, "0.19.0")
+        self.assertEqual(sdd.VERSION, "0.20.0")
 
     def test_distribution_versions_match(self) -> None:
         pyproject = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
@@ -2147,6 +2147,41 @@ class SddToolingTests(unittest.TestCase):
         with contextlib.redirect_stdout(io.StringIO()):
             _change_id, findings = sdd.bootstrap_change(root, "Should fail")
         self.assertTrue(any(f.severity == "error" for f in findings))
+
+    # ── v0.20.0: Scale Adaptivity ─────────────────────────────────────────
+
+    def test_suggest_profile_returns_quick_for_hotfix_title(self) -> None:
+        profile = sdd.suggest_profile("hotfix: crash on startup")
+        self.assertEqual(profile, "quick")
+
+    def test_suggest_profile_returns_bugfix_for_bug_keywords(self) -> None:
+        profile = sdd.suggest_profile("fix broken auth validation")
+        self.assertEqual(profile, "bugfix")
+
+    def test_suggest_profile_returns_refactor_for_refactor_keywords(self) -> None:
+        profile = sdd.suggest_profile("refactor payment module")
+        self.assertEqual(profile, "refactor")
+
+    def test_suggest_profile_returns_standard_for_feature_title(self) -> None:
+        profile = sdd.suggest_profile("add user notification preferences")
+        self.assertEqual(profile, "standard")
+
+    def test_suggest_profile_returns_research_for_research_title(self) -> None:
+        profile = sdd.suggest_profile("research caching strategies for read-heavy endpoints")
+        self.assertEqual(profile, "research")
+
+    def test_bootstrap_change_auto_profile_uses_suggest_profile(self) -> None:
+        root = REPO_ROOT / ".tmp-tests" / f"autoprof-{uuid.uuid4().hex}"
+        with contextlib.redirect_stdout(io.StringIO()):
+            sdd.init_project(root)
+        with contextlib.redirect_stdout(io.StringIO()):
+            change_id, findings = sdd.bootstrap_change(root, "hotfix: crash on startup", profile="auto")
+        self.assertEqual(findings, [])
+        # change dir should exist
+        self.assertTrue((root / ".sdd" / "changes" / change_id).is_dir())
+        # quick profile has proposal.md, tasks.md, verification.md
+        artifacts = list((root / ".sdd" / "changes" / change_id).iterdir())
+        self.assertGreater(len(artifacts), 0)
 
 
 if __name__ == "__main__":

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.20.0 - 2026-05-06
+
+**Scale Adaptivity (118 tests pass)**
+
+New `suggest_profile()` function and `profile="auto"` support in `bootstrap_change()`.
+
+- **`suggest_profile(title)`** — tokenizes the change title into whole words and scores against a keyword table to select the best profile: `quick` (hotfix/urgent), `bugfix` (fix/crash/regression), `refactor` (refactor/cleanup/restructure), `research` (research/spike/evaluate), `standard` (default). Ties are broken by specificity order.
+- **`bootstrap_change(root, title, *, profile="auto")`** — accepts `profile="auto"` (now the default) which calls `suggest_profile(title)` internally before creating the scaffold.
+- `_PROFILE_KEYWORDS` scoring table added to `_workflow.py` (private constant).
+
 ## 0.19.0 - 2026-05-06
 
 **Brownfield Bootstrap (112 tests pass)**
