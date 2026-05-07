@@ -85,8 +85,10 @@ REQUIRED_DIRECTORIES = [
 REQUIRED_ADAPTERS = [
     "claude-code.json",
     "codex.json",
+    "cursor.json",
     "generic-markdown.json",
     "gemini-cli.json",
+    "github-copilot.json",
     "opencode.json",
     "qwen-code.json",
 ]

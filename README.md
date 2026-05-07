@@ -312,9 +312,11 @@ The generic baseline is `.sdd/adapters/generic-markdown.json`.
 
 Concrete capability manifests included in v0.1:
 
-- Codex: `.sdd/adapters/codex.json`
 - Claude Code: `.sdd/adapters/claude-code.json`
+- Codex: `.sdd/adapters/codex.json`
+- Cursor: `.sdd/adapters/cursor.json`
 - Gemini CLI: `.sdd/adapters/gemini-cli.json`
+- GitHub Copilot: `.sdd/adapters/github-copilot.json`
 - OpenCode: `.sdd/adapters/opencode.json`
 - Qwen Code: `.sdd/adapters/qwen-code.json`
 

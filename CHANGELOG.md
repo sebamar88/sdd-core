@@ -32,6 +32,12 @@
 
 - README updated for v0.23.0: `--trace` usage with example output, "Current Status" modernized, stale version reference removed.
 
+### New adapters
+
+- `github-copilot.json` — GitHub Copilot (Chat, Edits, Agent mode).
+- `cursor.json` — Cursor (Chat, Composer, Agent mode).
+- Total supported adapters: 8 (was 6).
+
 ## 0.22.0 - 2026-05-06
 
 **Modular refactor — no module exceeds 500 lines (123 tests pass, 1 skipped)**
