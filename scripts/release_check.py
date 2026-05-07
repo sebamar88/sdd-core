@@ -172,10 +172,10 @@ def release_check(*, keep_temp: bool) -> None:
         run([str(venv_cli()), "install-hooks", "--root", str(SMOKE_ROOT)])
 
         for adapter in ["codex", "claude-code", "gemini-cli", "opencode", "qwen-code", "generic-markdown"]:
-            adapter_path = SMOKE_ROOT / ".sdd" / "adapters" / f"{adapter}.json"
+            adapter_path = SMOKE_ROOT / ".proofkit" / "adapters" / f"{adapter}.json"
             if not adapter_path.is_file():
                 raise AssertionError(f"packaged adapter was not initialized: {adapter_path}")
-        workflow_proposal = SMOKE_ROOT / ".sdd" / "changes" / "release-gate" / "proposal.md"
+        workflow_proposal = SMOKE_ROOT / ".proofkit" / "changes" / "release-gate" / "proposal.md"
         if not workflow_proposal.is_file():
             raise AssertionError(f"installed CLI did not create workflow change: {workflow_proposal}")
 
@@ -233,14 +233,14 @@ def release_check(*, keep_temp: bool) -> None:
             (NPM_PROJECT_ROOT / NPM_RELATIVE_SMOKE_ROOT / ".git").mkdir()
             run([node, str(npm_launcher), "install-hooks", "--root", str(NPM_RELATIVE_SMOKE_ROOT)], cwd=NPM_PROJECT_ROOT)
 
-            npm_adapter = NPM_SMOKE_ROOT / ".sdd" / "adapters" / "codex.json"
+            npm_adapter = NPM_SMOKE_ROOT / ".proofkit" / "adapters" / "codex.json"
             if not npm_adapter.is_file():
                 raise AssertionError(f"npm wrapper did not initialize packaged adapters: {npm_adapter}")
-            relative_npm_adapter = NPM_PROJECT_ROOT / NPM_RELATIVE_SMOKE_ROOT / ".sdd" / "adapters" / "codex.json"
+            relative_npm_adapter = NPM_PROJECT_ROOT / NPM_RELATIVE_SMOKE_ROOT / ".proofkit" / "adapters" / "codex.json"
             if not relative_npm_adapter.is_file():
                 raise AssertionError(f"npm wrapper did not resolve relative roots from caller cwd: {relative_npm_adapter}")
             relative_npm_proposal = (
-                NPM_PROJECT_ROOT / NPM_RELATIVE_SMOKE_ROOT / ".sdd" / "changes" / "npm-release-gate" / "proposal.md"
+                NPM_PROJECT_ROOT / NPM_RELATIVE_SMOKE_ROOT / ".proofkit" / "changes" / "npm-release-gate" / "proposal.md"
             )
             if not relative_npm_proposal.is_file():
                 raise AssertionError(f"npm wrapper did not create workflow change from caller cwd: {relative_npm_proposal}")
