@@ -28,6 +28,10 @@
   - `VALIDATION`: `validate()` reports errors on `change_id` frontmatter mismatches.
   - Trace mode: `[TRACE]` output goes to stderr only and does not alter exit code.
 
+### Documentation
+
+- README updated for v0.23.0: `--trace` usage with example output, "Current Status" modernized, stale version reference removed.
+
 ## 0.22.0 - 2026-05-06
 
 **Modular refactor — no module exceeds 500 lines (123 tests pass, 1 skipped)**

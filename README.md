@@ -266,6 +266,15 @@ ssd-core phase <change-id> --root <path>
 ssd-core log <change-id> --root <path>
 ```
 
+Add `--trace` to any command for component-level diagnostic output:
+
+```text
+ssd-core --trace transition my-change specify --root .
+# [TRACE] REGISTRY     → transition my-change → specify
+# [TRACE] REGISTRY     → require_phase my-change expected=propose
+# [TRACE] INFERENCE    → workflow_state my-change
+```
+
 ### Repository Contract
 
 ```text
@@ -351,12 +360,12 @@ See:
 
 ## Current Status
 
-Current release: `v0.6.0`
+Current release: `v0.23.0`
 
-Solid in v0.3:
+Production-ready:
 
 - protocol, constitution, profiles, schemas
-- concrete adapter manifests for major runtimes
+- concrete adapter manifests for major runtimes (Codex, Claude Code, Gemini CLI, OpenCode, Qwen Code)
 - dependency-free reference CLI
 - packaged templates and docs
 - cross-platform release check and CI
@@ -368,6 +377,9 @@ Solid in v0.3:
 - explicit `.sdd/state.json` registry with validated phase transitions and artifact checksums
 - executable verification evidence through `ssd-core verify --command`
 - annotated Golden Path demo through `ssd-core demo`
+- `--trace` mode for component-level debugging (`ENGINE → REGISTRY → EVIDENCE → INFERENCE`)
+- 133 tests including 10 cross-module contract tests
+- modular architecture: no module > 500 lines
 
 Deferred to future versions:
 
