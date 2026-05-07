@@ -10,6 +10,7 @@ from pathlib import Path
 from ._types import (
     Finding,
     TemplateResource,
+    SDD_DIR,
     MEMORY_KEYS,
     _green,
     _dim,
@@ -22,7 +23,7 @@ _INTEGRATION_COMMAND_DIRS: dict[str, dict[str, str]] = {
     "opencode":    {"repo": ".opencode/commands/sdd",        "user": ".config/opencode/commands/sdd", "local": ".opencode/commands/sdd"},
     "codex":       {"repo": ".codex/commands/sdd",           "user": ".codex/commands/sdd",           "local": ".codex/commands/sdd"},
     "gemini-cli":  {"repo": ".gemini/commands/sdd",          "user": ".gemini/commands/sdd",          "local": ".gemini/commands/sdd"},
-    "generic":     {"repo": ".sdd/commands",                 "user": ".sdd/commands",                 "local": ".sdd/commands"},
+    "generic":     {"repo": f"{SDD_DIR}/commands",                 "user": f"{SDD_DIR}/commands",                 "local": f"{SDD_DIR}/commands"},
 }
 
 COMMAND_SCOPES: list[str] = ["repo", "user", "local"]
@@ -42,7 +43,7 @@ def logical_path(root: Path, value: str) -> Path:
 
 
 def template_sdd_root() -> TemplateResource:
-    source_checkout_template = Path(__file__).resolve().parents[1] / ".sdd"
+    source_checkout_template = Path(__file__).resolve().parents[1] / SDD_DIR
     if source_checkout_template.is_dir():
         return source_checkout_template
     return files("proofkit").joinpath("templates", "sdd")  # type: ignore[return-value]
@@ -75,7 +76,7 @@ def list_available_integrations() -> list[str]:
 
 
 def memory_path(root: Path, key: str) -> Path:
-    return root / ".sdd" / "memory" / f"{key}.md"
+    return root / SDD_DIR / "memory" / f"{key}.md"
 
 
 def read_memory_entry(root: Path, key: str) -> str | None:

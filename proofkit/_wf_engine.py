@@ -15,6 +15,7 @@ from ._types import (
     WorkflowFailure,
     WorkflowState,
     WorkflowResult,
+    SDD_DIR,
     PHASE_ORDER,
     ALLOWED_TRANSITIONS,
     trace,
@@ -350,7 +351,7 @@ def guard_repository(
         findings.append(
             Finding(
                 "error",
-                root / ".sdd" / "changes",
+                root / SDD_DIR / "changes",
                 "active SDD change is required by guard policy",
             )
         )
@@ -362,7 +363,7 @@ def guard_repository(
         if require_execution_evidence and PHASE_ORDER[state.phase] >= PHASE_ORDER[WorkflowPhase.VERIFY]:
             findings.extend(validate_execution_evidence(root, change_dir.name))
 
-    archive_root = root / ".sdd" / "archive"
+    archive_root = root / SDD_DIR / "archive"
     if archive_root.is_dir():
         for archive_dir in sorted(path for path in archive_root.iterdir() if path.is_dir()):
             change_id = archived_change_id(archive_dir)

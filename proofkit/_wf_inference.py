@@ -14,6 +14,7 @@ from ._types import (
     Finding,
     WorkflowPhase,
     WorkflowState,
+    SDD_DIR,
     OPEN_TASK_PATTERN,
     PHASE_ORDER,
     PHASE_NEXT_ACTIONS,
@@ -127,7 +128,7 @@ def _infer_workflow_state(root: Path, change_id: str) -> WorkflowState:
             readiness_findings,
         )
 
-    spec_path = root / ".sdd" / "specs" / change_id / "spec.md"
+    spec_path = root / SDD_DIR / "specs" / change_id / "spec.md"
     if "delta-spec.md" in summary.present and not spec_path.is_file():
         return WorkflowState(
             change_id,

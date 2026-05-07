@@ -23,7 +23,7 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-from ._types import Finding
+from ._types import Finding, SDD_DIR
 
 # ── Data model ────────────────────────────────────────────────────────────────
 
@@ -49,7 +49,7 @@ class Extension:
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _extensions_dir(root: Path) -> Path:
-    return root / ".sdd" / "extensions"
+    return root / SDD_DIR / "extensions"
 
 
 def _read_manifest(manifest_path: Path) -> tuple[dict | None, str | None]:

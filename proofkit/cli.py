@@ -81,6 +81,22 @@ def build_parser() -> argparse.ArgumentParser:
         default=".",
         help="repository root; defaults to the current directory",
     )
+    init_parser.add_argument(
+        "--integration",
+        default=None,
+        choices=list_available_integrations(),
+        metavar="INTEGRATION",
+        help=(
+            "AI agent integration to install commands for; "
+            f"one of: {', '.join(list_available_integrations())}. "
+            "If omitted, you will be prompted interactively."
+        ),
+    )
+    init_parser.add_argument(
+        "--no-prompt",
+        action="store_true",
+        help="skip the interactive agent integration prompt (CI-friendly)",
+    )
 
     status_parser = subcommands.add_parser("status", help="show ProofKit repository status")
     status_parser.add_argument(
@@ -255,17 +271,17 @@ def build_parser() -> argparse.ArgumentParser:
     guard_parser.add_argument(
         "--require-active-change",
         action="store_true",
-        help="fail when no active .sdd change exists",
+        help="fail when no active .proofkit change exists",
     )
     guard_parser.add_argument(
         "--strict-state",
         action="store_true",
-        help="fail when .sdd/state.json is missing entries or artifact checksums are stale",
+        help="fail when .proofkit/state.json is missing entries or artifact checksums are stale",
     )
     guard_parser.add_argument(
         "--require-execution-evidence",
         action="store_true",
-        help="fail verified or archived changes without passing .sdd/evidence execution records",
+        help="fail verified or archived changes without passing .proofkit/evidence execution records",
     )
     guard_parser.add_argument(
         "--root",
@@ -406,6 +422,30 @@ def main(argv: list[str] | None = None) -> int:
         findings = init_project(root)
         if findings:
             return print_findings(root, findings)
+
+        integration = getattr(args, "integration", None)
+        no_prompt = getattr(args, "no_prompt", False)
+
+        if integration is None and not no_prompt:
+            integrations = list_available_integrations()
+            print()
+            print("Which AI agent will you use with ProofKit?")
+            for i, name in enumerate(integrations, 1):
+                print(f"  {i}) {name}")
+            print(f"  {len(integrations) + 1}) skip")
+            try:
+                raw = input("Enter number: ").strip()
+                choice = int(raw)
+                if 1 <= choice <= len(integrations):
+                    integration = integrations[choice - 1]
+            except (ValueError, EOFError):
+                pass
+
+        if integration:
+            cmd_findings = install_commands(root, integration, "repo")
+            if cmd_findings:
+                return print_findings(root, cmd_findings)
+
         return print_findings(root, validate(root))
 
     if args.command == "status":

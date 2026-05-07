@@ -18,6 +18,7 @@ from ._types import (
     Finding,
     WorkflowPhase,
     WorkflowState,
+    SDD_DIR,
     _green,
     _bold,
     trace,
@@ -31,7 +32,7 @@ def utc_timestamp() -> str:
 
 
 def evidence_directory(root: Path, change_id: str) -> Path:
-    return root / ".sdd" / "evidence" / change_id
+    return root / SDD_DIR / "evidence" / change_id
 
 
 def execution_evidence_path(root: Path, change_id: str) -> Path:

@@ -14,6 +14,7 @@ from pathlib import Path
 from ._types import (
     Finding,
     RepositoryInfo,
+    SDD_DIR,
 )
 
 
@@ -97,7 +98,7 @@ def discover_repository(root: Path) -> RepositoryInfo:
         ".travis.yml",
     ]
     has_ci = any((root / s).exists() for s in ci_signals)
-    has_sdd = (root / ".sdd").is_dir()
+    has_sdd = (root / SDD_DIR).is_dir()
     test_cmd = discover_test_command(root)
 
     return RepositoryInfo(
@@ -146,10 +147,10 @@ def bootstrap_change(
     """
     from ._wf_changeops import create_change
 
-    if not (root / ".sdd").is_dir():
+    if not (root / SDD_DIR).is_dir():
         return (
             "",
-            [Finding("error", root / ".sdd", ".sdd directory not found — run 'proofkit init' first")],
+            [Finding("error", root / SDD_DIR, f"{SDD_DIR} directory not found — run 'proofkit init' first")],
         )
 
     resolved_profile = suggest_profile(title) if profile == "auto" else profile
@@ -158,7 +159,7 @@ def bootstrap_change(
     slug_base = slug_base[:40]
     change_id = slug_base
 
-    changes_dir = root / ".sdd" / "changes"
+    changes_dir = root / SDD_DIR / "changes"
     if (changes_dir / change_id).exists():
         suffix = uuid.uuid4().hex[:6]
         change_id = f"{slug_base}-{suffix}"

@@ -93,19 +93,21 @@ _PHASE_ICON: dict[str, str] = {
     "blocked":        "✗",
 }
 
+SDD_DIR = ".proofkit"
+
 REQUIRED_DIRECTORIES = [
-    ".sdd",
-    ".sdd/adapters",
-    ".sdd/agents",
-    ".sdd/memory",
-    ".sdd/profiles",
-    ".sdd/schemas",
-    ".sdd/skills",
-    ".sdd/specs",
-    ".sdd/changes",
-    ".sdd/archive",
-    ".sdd/evidence",
-    ".sdd/extensions",
+    ".proofkit",
+    ".proofkit/adapters",
+    ".proofkit/agents",
+    ".proofkit/memory",
+    ".proofkit/profiles",
+    ".proofkit/schemas",
+    ".proofkit/skills",
+    ".proofkit/specs",
+    ".proofkit/changes",
+    ".proofkit/archive",
+    ".proofkit/evidence",
+    ".proofkit/extensions",
 ]
 
 REQUIRED_ADAPTERS = [

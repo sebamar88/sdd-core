@@ -11,6 +11,7 @@ from pathlib import Path
 from ._types import (
     Finding,
     WorkflowPhase,
+    SDD_DIR,
     _PHASE_ICON,
     _green,
     _yellow,
@@ -152,13 +153,13 @@ def run_demo() -> int:
         findings = init_project(root)
         if findings:
             return fail("init failed", findings, root)
-        ok("Initialized .sdd/ — adapters, agents, profiles, schemas, skills, specs")
+        ok(f"Initialized {SDD_DIR}/ — adapters, agents, profiles, schemas, skills, specs")
 
         section(f"proofkit new {change_id} --profile quick --title '{title}'")
         findings = create_change(root, change_id, profile, title)
         if findings:
             return fail("create_change failed", findings, root)
-        ok(f"Created .sdd/changes/{change_id}/ — proposal.md, tasks.md, verification.md")
+        ok(f"Created {SDD_DIR}/changes/{change_id}/ — proposal.md, tasks.md, verification.md")
 
         section(f"proofkit auto {change_id} --loop  (engine runs; pauses for human input)")
         result = _auto_advance(root, change_id)
@@ -229,9 +230,9 @@ def run_demo() -> int:
         findings = verify_change(root, change_id, ["echo tests-pass"])
         if findings:
             return fail("verify failed", findings, root)
-        ok("Command executed; output stored \u2192 .sdd/evidence/<id>.log")
+        ok(f"Command executed; output stored \u2192 {SDD_DIR}/evidence/<id>.log")
         ok("verification.md updated automatically \u2192 status: verified")
-        ok("Phase recorded in .sdd/state.json \u2192 verify")
+        ok(f"Phase recorded in {SDD_DIR}/state.json \u2192 verify")
 
         section(f"proofkit auto {change_id} --loop  (engine closes the change)")
         loop_steps = 0
@@ -243,8 +244,8 @@ def run_demo() -> int:
             if r.needs_human_work or r.step.is_complete or r.step.is_blocked or not r.executed_command:
                 break
         if r.step.is_complete:
-            archived = next(p for p in (root / ".sdd" / "archive").iterdir() if p.is_dir())
-            ok(f"Change closed \u2192 .sdd/archive/{archived.name}/  ({loop_steps} step(s))")
+            archived = next(p for p in (root / SDD_DIR / "archive").iterdir() if p.is_dir())
+            ok(f"Change closed \u2192 {SDD_DIR}/archive/{archived.name}/  ({loop_steps} step(s))")
         else:
             return fail("expected archived", r.step.blocking_findings, root)
 

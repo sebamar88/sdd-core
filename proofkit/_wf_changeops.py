@@ -15,6 +15,7 @@ from ._types import (
     ChangeSummary,
     WorkflowPhase,
     WorkflowState,
+    SDD_DIR,
     PROFILE_ARTIFACTS,
     TOKEN_PATTERN,
     OPEN_TASK_PATTERN,
@@ -67,7 +68,7 @@ def summarize_change(change_dir: Path) -> ChangeSummary:
 
 
 def active_change_directories(root: Path) -> list[Path]:
-    changes_dir = root / ".sdd" / "changes"
+    changes_dir = root / SDD_DIR / "changes"
     if not changes_dir.is_dir():
         return []
     return sorted(path for path in changes_dir.iterdir() if path.is_dir())
@@ -79,15 +80,15 @@ def status(root: Path) -> tuple[list[Finding], list[ChangeSummary]]:
     changes = [summarize_change(path) for path in active_change_directories(root)]
     for change in changes:
         if change.profile == "unknown":
-            findings.append(Finding("warning", root / ".sdd" / "changes" / change.change_id, "could not detect profile"))
+            findings.append(Finding("warning", root / SDD_DIR / "changes" / change.change_id, "could not detect profile"))
         if change.missing:
             missing = ", ".join(change.missing)
-            findings.append(Finding("warning", root / ".sdd" / "changes" / change.change_id, f"missing profile artifacts: {missing}"))
+            findings.append(Finding("warning", root / SDD_DIR / "changes" / change.change_id, f"missing profile artifacts: {missing}"))
     return findings, changes
 
 
 def change_directory(root: Path, change_id: str) -> Path:
-    return root / ".sdd" / "changes" / change_id
+    return root / SDD_DIR / "changes" / change_id
 
 
 def validate_change_id(change_id: str) -> list[Finding]:
@@ -187,7 +188,7 @@ def change_location(root: Path, change_id: str) -> Path | None:
 
 
 def archived_change_directory(root: Path, change_id: str) -> Path | None:
-    archive_root = root / ".sdd" / "archive"
+    archive_root = root / SDD_DIR / "archive"
     if not archive_root.is_dir():
         return None
     matches = sorted(path for path in archive_root.glob(f"*-{change_id}") if path.is_dir())
@@ -206,7 +207,7 @@ def change_has_delta_spec(change_dir: Path) -> bool:
 
 
 def living_spec_path(root: Path, change_id: str) -> Path:
-    return root / ".sdd" / "specs" / change_id / "spec.md"
+    return root / SDD_DIR / "specs" / change_id / "spec.md"
 
 
 def validate_spec_sync(root: Path, change_dir: Path, change_id: str) -> list[Finding]:
@@ -259,7 +260,7 @@ def archive_change(root: Path, change_id: str) -> list[Finding]:
     if spec_findings:
         return spec_findings
 
-    archive_root = root / ".sdd" / "archive"
+    archive_root = root / SDD_DIR / "archive"
     if not archive_root.is_dir():
         return [Finding("error", archive_root, "archive directory is missing")]
 
@@ -267,10 +268,10 @@ def archive_change(root: Path, change_id: str) -> list[Finding]:
     if destination.exists():
         return [Finding("error", destination, "archive destination already exists")]
 
-    changes_root = (root / ".sdd" / "changes").resolve()
+    changes_root = (root / SDD_DIR / "changes").resolve()
     source_resolved = source.resolve()
     if not source_resolved.is_relative_to(changes_root):
-        return [Finding("error", source, "resolved change path is outside .sdd/changes")]
+        return [Finding("error", source, f"resolved change path is outside {SDD_DIR}/changes")]
 
     shutil.copytree(source_resolved, destination)
     shutil.rmtree(source_resolved)
@@ -301,7 +302,7 @@ def sync_specs(root: Path, change_id: str) -> list[Finding]:
     if not delta_path.is_file():
         return [Finding("error", delta_path, "delta-spec.md is required for spec sync")]
 
-    specs_root = root / ".sdd" / "specs"
+    specs_root = root / SDD_DIR / "specs"
     if not specs_root.is_dir():
         return [Finding("error", specs_root, "specs directory is missing")]
 
@@ -343,8 +344,8 @@ def create_change(root: Path, change_id: str, profile: str, title: str | None) -
     if profile not in PROFILE_ARTIFACTS:
         return [Finding("error", None, f"profile is not recognized: {profile}")]
 
-    changes_dir = root / ".sdd" / "changes"
-    profile_path = root / ".sdd" / "profiles" / f"{profile}.md"
+    changes_dir = root / SDD_DIR / "changes"
+    profile_path = root / SDD_DIR / "profiles" / f"{profile}.md"
     if not changes_dir.is_dir():
         findings.append(Finding("error", changes_dir, "required changes directory is missing"))
     if not profile_path.is_file():

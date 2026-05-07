@@ -14,6 +14,7 @@ from ._types import (
     Finding,
     WorkflowPhase,
     WorkflowState,
+    SDD_DIR,
     WORKFLOW_STATE_SCHEMA,
     PHASE_ORDER,
     ALLOWED_TRANSITIONS,
@@ -54,7 +55,7 @@ _PHASE_ARTIFACT_FILE: dict[WorkflowPhase, str] = {
 # ── Registry I/O ──────────────────────────────────────────────────────────────
 
 def workflow_registry_path(root: Path) -> Path:
-    return root / ".sdd" / "state.json"
+    return root / SDD_DIR / "state.json"
 
 
 def empty_workflow_registry() -> dict[str, object]:
@@ -321,7 +322,7 @@ def validate_workflow_registry(root: Path, *, strict_state: bool = False) -> lis
                     Finding(
                         "error",
                         change_dir,
-                        f"active change is not recorded in .sdd/state.json: {change_dir.name}",
+                        f"active change is not recorded in {SDD_DIR}/state.json: {change_dir.name}",
                     )
                 )
 

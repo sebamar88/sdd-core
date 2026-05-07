@@ -12,6 +12,7 @@ from pathlib import Path
 from ._types import (
     Finding,
     REQUIRED_DIRECTORIES,
+    SDD_DIR,
     REQUIRED_ADAPTERS,
     REQUIRED_AGENTS,
     REQUIRED_PROFILES,
@@ -51,33 +52,33 @@ def validate_required_directories(root: Path) -> list[Finding]:
 
 def validate_required_files(root: Path) -> list[Finding]:
     findings: list[Finding] = []
-    for required_file in [".sdd/protocol.md", ".sdd/constitution.md", ".sdd/state.json"]:
+    for required_file in [f"{SDD_DIR}/protocol.md", f"{SDD_DIR}/constitution.md", f"{SDD_DIR}/state.json"]:
         path = logical_path(root, required_file)
         if not path.is_file():
             findings.append(Finding("error", path, "required file is missing"))
 
     for adapter in REQUIRED_ADAPTERS:
-        path = logical_path(root, f".sdd/adapters/{adapter}")
+        path = logical_path(root, f"{SDD_DIR}/adapters/{adapter}")
         if not path.is_file():
             findings.append(Finding("error", path, "required adapter manifest is missing"))
 
     for agent in REQUIRED_AGENTS:
-        path = logical_path(root, f".sdd/agents/{agent}.md")
+        path = logical_path(root, f"{SDD_DIR}/agents/{agent}.md")
         if not path.is_file():
             findings.append(Finding("error", path, "required agent is missing"))
 
     for profile in REQUIRED_PROFILES:
-        path = logical_path(root, f".sdd/profiles/{profile}.md")
+        path = logical_path(root, f"{SDD_DIR}/profiles/{profile}.md")
         if not path.is_file():
             findings.append(Finding("error", path, "required profile is missing"))
 
     for skill in REQUIRED_SKILLS:
-        path = logical_path(root, f".sdd/skills/{skill}.md")
+        path = logical_path(root, f"{SDD_DIR}/skills/{skill}.md")
         if not path.is_file():
             findings.append(Finding("error", path, "required skill is missing"))
 
     for schema_name in REQUIRED_SCHEMAS:
-        path = logical_path(root, f".sdd/schemas/{schema_name}")
+        path = logical_path(root, f"{SDD_DIR}/schemas/{schema_name}")
         if not path.is_file():
             findings.append(Finding("error", path, "required schema is missing"))
 
@@ -86,7 +87,7 @@ def validate_required_files(root: Path) -> list[Finding]:
 
 def validate_markdown_frontmatter(root: Path) -> list[Finding]:
     findings: list[Finding] = []
-    sdd_root = root / ".sdd"
+    sdd_root = root / SDD_DIR
     if not sdd_root.exists():
         return findings
 
@@ -178,7 +179,7 @@ def validate_markdown_frontmatter(root: Path) -> list[Finding]:
 
 def validate_json_schemas(root: Path) -> list[Finding]:
     findings: list[Finding] = []
-    schema_dir = root / ".sdd" / "schemas"
+    schema_dir = root / SDD_DIR / "schemas"
     if not schema_dir.exists():
         return findings
 
@@ -201,7 +202,7 @@ def validate_json_schemas(root: Path) -> list[Finding]:
 
 def validate_protocol_pointer(root: Path) -> list[Finding]:
     findings: list[Finding] = []
-    protocol_path = root / ".sdd" / "protocol.md"
+    protocol_path = root / SDD_DIR / "protocol.md"
     if not protocol_path.exists():
         return findings
 
@@ -233,10 +234,10 @@ def validate(root: Path) -> list[Finding]:
 def init_project(root: Path) -> list[Finding]:
     source = template_sdd_root()
     if not source.is_dir():
-        return [Finding("error", None, "template .sdd directory is missing")]
+        return [Finding("error", None, f"template {SDD_DIR} directory is missing")]
 
     root.mkdir(parents=True, exist_ok=True)
-    target = root / ".sdd"
+    target = root / SDD_DIR
     target.mkdir(exist_ok=True)
 
     for directory in FOUNDATION_COPY_DIRECTORIES:
