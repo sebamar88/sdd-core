@@ -27,6 +27,7 @@ from ._types import (
     FOUNDATION_DOC_FILES,
     EMPTY_STATE_DIRECTORIES,
     MEMORY_COPY_FILES,
+    trace,
 )
 from ._wf_artifacts import read_frontmatter
 from ._wf_templates import (
@@ -215,6 +216,7 @@ def validate_protocol_pointer(root: Path) -> list[Finding]:
 
 
 def validate(root: Path) -> list[Finding]:
+    trace("VALIDATION", f"validate root={root.name}")
     checks = [
         validate_required_directories,
         validate_required_files,

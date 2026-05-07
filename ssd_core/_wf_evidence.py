@@ -20,6 +20,7 @@ from ._types import (
     WorkflowState,
     _green,
     _bold,
+    trace,
 )
 from ._extensions import run_extension_hooks
 
@@ -123,6 +124,7 @@ def run_verification_command(
     command: str,
     timeout_seconds: int,
 ) -> tuple[dict[str, object], Finding | None]:
+    trace("EVIDENCE", f"run_cmd {command!r}")
     t0 = time.monotonic()
     try:
         completed = subprocess.run(
@@ -231,6 +233,7 @@ def verify_change(
     timeout_seconds: int = 120,
 ) -> list[Finding]:
     """Explicit governance gate: validate evidence quality and record VERIFY phase."""
+    trace("EVIDENCE", f"verify_change {change_id} commands={len(commands or [])} require={require_command}")
     from ._wf_registry import COMMAND_GATES, gate_command, record_workflow_state
     from ._wf_changeops import (
         change_directory,

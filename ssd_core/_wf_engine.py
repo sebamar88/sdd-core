@@ -17,6 +17,7 @@ from ._types import (
     WorkflowResult,
     PHASE_ORDER,
     ALLOWED_TRANSITIONS,
+    trace,
 )
 from ._wf_changeops import (
     change_directory,
@@ -115,6 +116,7 @@ class WorkflowEngine:
 
     def guard(self, change_id: str, command: str) -> list[Finding]:
         """Return block findings for *command* against *change_id*, or [] if the gate passes."""
+        trace("ENGINE", f"engine.guard {change_id} command={command}")
         if command not in self.COMMAND_GATES:
             return [Finding("error", None, f"no gate registered for command: {command}")]
         required_phase, check_checksum = self.COMMAND_GATES[command]
@@ -150,6 +152,7 @@ class WorkflowEngine:
         timeout_seconds: int = 120,
     ) -> list[Finding]:
         """Execute a gated workflow command after checking its declared phase."""
+        trace("ENGINE", f"engine.execute {change_id} command={command}")
         findings = self.guard(change_id, command)
         if findings:
             return findings
@@ -335,6 +338,7 @@ def guard_repository(
     strict_state: bool = False,
     require_execution_evidence: bool = False,
 ) -> list[Finding]:
+    trace("ENGINE", f"guard_repository root={root.name} strict={strict_state} evidence={require_execution_evidence}")
     findings = [finding for finding in validate(root) if finding.severity == "error"]
     if findings:
         return findings
@@ -373,6 +377,7 @@ def guard_repository(
 
 def _auto_advance(root: Path, change_id: str) -> "AutoStep":
     """Advance the workflow one step automatically."""
+    trace("ENGINE", f"auto_advance {change_id}")
     from ._wf_registry import transition_workflow
 
     engine = WorkflowEngine(root)

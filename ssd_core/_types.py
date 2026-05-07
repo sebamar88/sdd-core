@@ -8,7 +8,7 @@ from enum import Enum
 from pathlib import Path
 from typing import ClassVar, Iterable, Protocol
 
-VERSION = "0.22.0"
+VERSION = "0.23.0"
 
 
 # ── Terminal color helpers ───────────────────────────────────────────────────
@@ -33,6 +33,23 @@ def _red(t: str) -> str:    return _c("31", t)
 def _cyan(t: str) -> str:   return _c("36", t)
 def _bold(t: str) -> str:   return _c("1",  t)
 def _dim(t: str) -> str:    return _c("2",  t)
+
+
+# ── Trace / debug mode ───────────────────────────────────────────────────────
+
+_TRACE_ENABLED: bool = False
+
+
+def enable_trace() -> None:
+    """Activate component-level trace output for the current process."""
+    global _TRACE_ENABLED
+    _TRACE_ENABLED = True
+
+
+def trace(component: str, message: str) -> None:
+    """Emit a single debug trace line to stderr when --trace is active."""
+    if _TRACE_ENABLED:
+        print(f"[TRACE] {component:<12} → {message}", file=sys.stderr)
 
 
 _PHASE_ICON: dict[str, str] = {

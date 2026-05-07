@@ -25,6 +25,12 @@ from ._workflow import _CI_TEMPLATES  # noqa: F401
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="SDD-Core utility")
+    parser.add_argument(
+        "--trace",
+        action="store_true",
+        default=False,
+        help="emit component-level trace output to stderr for debugging",
+    )
     subcommands = parser.add_subparsers(dest="command", required=True)
 
     validate_parser = subcommands.add_parser("validate", help="validate SDD-Core repository artifacts")
@@ -372,6 +378,10 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+
+    if getattr(args, "trace", False):
+        from ._types import enable_trace
+        enable_trace()
 
     if args.command == "validate":
         root = Path(args.root).resolve()

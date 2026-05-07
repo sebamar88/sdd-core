@@ -18,6 +18,7 @@ from ._types import (
     PHASE_ORDER,
     ALLOWED_TRANSITIONS,
     PHASE_NEXT_ACTIONS,
+    trace,
 )
 
 # ── Registry constants ─────────────────────────────────────────────────────────
@@ -174,6 +175,7 @@ def phase_is_supported(target: WorkflowPhase, inferred: WorkflowPhase) -> bool:
 # ── Phase gate ────────────────────────────────────────────────────────────────
 
 def require_recorded_phase(root: Path, change_id: str, expected: WorkflowPhase) -> list[Finding]:
+    trace("REGISTRY", f"require_phase {change_id} expected={expected.value}")
     from ._wf_changeops import validate_change_id, change_location
 
     findings = validate_change_id(change_id)
@@ -218,6 +220,7 @@ def gate_command(
     check_checksum: bool = False,
 ) -> list[Finding]:
     """Central command gate used by all destructive workflow commands."""
+    trace("REGISTRY", f"gate_command {change_id} required={required_phase.value} checksum={check_checksum}")
     findings = require_recorded_phase(root, change_id, required_phase)
     if findings or not check_checksum:
         return findings
@@ -326,6 +329,7 @@ def validate_workflow_registry(root: Path, *, strict_state: bool = False) -> lis
 
 
 def transition_workflow(root: Path, change_id: str, target_phase: WorkflowPhase) -> WorkflowState:
+    trace("REGISTRY", f"transition {change_id} → {target_phase.value}")
     from ._wf_changeops import validate_change_id, change_location
     from ._wf_inference import workflow_state, infer_phase_from_artifacts
 

@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.23.0 - 2026-05-07
+
+**Trace mode + contract tests (133 tests pass, 1 skipped)**
+
+### `--trace` debug mode
+
+- New top-level flag `sdd-core --trace <command>` emits component-level flow to stderr.
+- Trace infrastructure added to `ssd_core/_types.py`: `enable_trace()`, `trace(component, message)`.
+- Trace calls added to five workflow sub-modules:
+  - `ENGINE` — `guard_repository`, `_auto_advance`, `WorkflowEngine.guard`, `WorkflowEngine.execute`
+  - `VALIDATION` — `validate`
+  - `REGISTRY` — `transition_workflow`, `gate_command`, `require_recorded_phase`
+  - `EVIDENCE` — `verify_change`, `run_verification_command`
+  - `INFERENCE` — `workflow_state`, `run_workflow`
+- Output format: `[TRACE] ENGINE       → guard_repository root=...` (stderr only; stdout unchanged).
+
+### Contract tests
+
+- New `tests/test_contracts.py` — 10 tests covering cross-module behavioral guarantees:
+  - `REGISTRY` atomicity: blocked transition never mutates `state.json`.
+  - `EVIDENCE→REGISTRY`: `verify_change` does not advance phase when any command fails.
+  - `ENGINE` gates: `archive_change` and `sync_specs` each block until the required phase is recorded.
+  - `INFERENCE→REGISTRY`: `workflow_state` matches `transition_workflow` result after each transition.
+  - `EVIDENCE`: multiple commands in one `verify_change` call write one record per command.
+  - `INFERENCE`: `infer_phase_from_artifacts` and `workflow_state` are independently stable.
+  - `VALIDATION`: `validate()` reports errors on `change_id` frontmatter mismatches.
+  - Trace mode: `[TRACE]` output goes to stderr only and does not alter exit code.
+
 ## 0.22.0 - 2026-05-06
 
 **Modular refactor — no module exceeds 500 lines (123 tests pass, 1 skipped)**

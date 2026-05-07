@@ -17,6 +17,7 @@ from ._types import (
     OPEN_TASK_PATTERN,
     PHASE_ORDER,
     PHASE_NEXT_ACTIONS,
+    trace,
 )
 from ._wf_changeops import (
     validate_change_id,
@@ -147,6 +148,7 @@ def _infer_workflow_state(root: Path, change_id: str) -> WorkflowState:
 
 def workflow_state(root: Path, change_id: str) -> WorkflowState:
     """Return the current workflow state (state.json-authoritative with artifact fallback)."""
+    trace("INFERENCE", f"workflow_state {change_id}")
     findings = validate_change_id(change_id)
     if findings:
         return WorkflowState(change_id, WorkflowPhase.BLOCKED, "unknown", "Use a kebab-case change id.", findings)
@@ -223,6 +225,7 @@ def run_workflow(
     *,
     create: bool = True,
 ) -> WorkflowState:
+    trace("INFERENCE", f"run_workflow {change_id} profile={profile} create={create}")
     from ._wf_validation import validate
     from ._wf_changeops import create_change
 
