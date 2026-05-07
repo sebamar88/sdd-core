@@ -298,6 +298,17 @@ Production-ready:
 
 ---
 
+## Influences And Attribution
+
+SSD-Core is original work, informed by MIT-licensed workflow ideas from:
+
+- [GitHub Spec Kit](https://github.com/github/spec-kit)
+- [OpenSpec](https://github.com/Fission-AI/OpenSpec)
+- [Agent Teams Lite](https://github.com/Gentleman-Programming/agent-teams-lite)
+- [BMAD-METHOD](https://github.com/bmad-code-org/BMAD-METHOD)
+
+Attribution and compatibility notes are in [NOTICE.md](NOTICE.md).
+
 ## License
 
-MIT
+SSD-Core is released under the [MIT License](LICENSE).
