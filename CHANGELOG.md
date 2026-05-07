@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.25.0 - 2026-05-07
+
+**Fix: test and release-check path references updated for .proofkit rebranding**
+
+- Updated all hardcoded `.sdd` path references in `tests/` and `scripts/release_check.py` to `.proofkit` to match the v0.24.0 `SDD_DIR` rename.
+- All 259 tests now pass.
+
+---
+
 ## 0.24.0 - 2026-05-06
 
 **Rebranding: SDD-Core → ProofKit**

@@ -1,6 +1,6 @@
 {
   "name": "proofkit-cli",
-  "version": "0.24.0",
+  "version": "0.25.0",
   "description": "AI development governance engine — prevent hallucinated completion and vanishing intent in agent-assisted software teams.",
   "license": "MIT",
   "homepage": "https://github.com/sebamar88/proofkit#readme",
