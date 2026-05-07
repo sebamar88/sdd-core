@@ -1,5 +1,35 @@
 # Changelog
 
+## 0.22.0 - 2026-05-06
+
+**Modular refactor — no module exceeds 500 lines (123 tests pass, 1 skipped)**
+
+Split three monolithic files into focused sub-modules to comply with the 500-line hard limit.
+
+- **`_workflow.py` → 10 sub-modules + thin aggregator:**
+  - `_wf_artifacts.py` — frontmatter generation and parsing.
+  - `_wf_templates.py` — template helpers, memory API, install-commands.
+  - `_wf_validation.py` — structural validation and `init_project`.
+  - `_wf_changeops.py` — change directory I/O, `create_change`, `archive_change`, `sync_specs`.
+  - `_wf_evidence.py` — execution evidence recording and `verify_change`.
+  - `_wf_discovery.py` — repository discovery and profile suggestion.
+  - `_wf_registry.py` — `state.json` I/O, phase gate, transition logic.
+  - `_wf_inference.py` — workflow state inference and `run_workflow`.
+  - `_wf_engine.py` — `SDDWorkflow`, `WorkflowEngine`, `EngineStep`, `AutoStep`, `_auto_advance`.
+  - `_wf_infra.py` — git hooks and CI templates.
+  - `_workflow.py` reduced to a 28-line aggregator (`from ._wf_xxx import *`).
+- **`_render.py` → `_render.py` + `_render_auto.py`:** `run_fast_demo`, `run_demo`, `_print_auto_step`, and `print_auto` moved to `_render_auto.py`; `_render.py` trimmed to 477 lines.
+- **`tests/test_sdd.py` (2246 lines) → 7 focused test files:**
+  - `test_core.py` — version, templates, profiles, validation, init.
+  - `test_workflow.py` — E2E standard change, transitions, guard, hooks.
+  - `test_verify.py` — `verify_change`, engine, matrix validation.
+  - `test_inference.py` — state inference, auto-loop.
+  - `test_execution_evidence.py` — evidence records, checksums, anti-hallucination.
+  - `test_golden.py` — full lifecycle golden paths (success and failure).
+  - `test_features.py` — install-commands, extensions, memory, discovery, dispatch.
+- Circular import dependencies (registry ↔ changeops ↔ inference) resolved with function-level lazy imports.
+- All 123 tests pass unchanged. No behavioral changes. Public API is unaffected.
+
 ## 0.21.0 - 2026-05-06
 
 **Multi-agent Runner (123 tests pass, 1 skipped)**
