@@ -11,8 +11,8 @@ import unittest
 from importlib.resources import files
 from pathlib import Path
 
-import proofkit
-from proofkit import cli as sdd
+import runproof
+from runproof import cli as sdd
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -78,7 +78,7 @@ class TestVerify(unittest.TestCase):
             self.assertEqual(sdd.create_change(root, change_id, "standard", "Guard login"), [])
 
         # Record TASK phase without real evidence so verify_change can be called
-        change_dir = root / ".proofkit" / "changes" / change_id
+        change_dir = root / ".runproof" / "changes" / change_id
         for filename in ["proposal.md", "delta-spec.md", "design.md", "archive.md"]:
             path = change_dir / filename
             path.write_text(path.read_text(encoding="utf-8").replace("status: draft", "status: ready"), encoding="utf-8")
@@ -108,7 +108,7 @@ class TestVerify(unittest.TestCase):
             self.assertEqual(sdd.init_project(root), [])
             self.assertEqual(sdd.create_change(root, change_id, "standard", "Guard login"), [])
 
-        change_dir = root / ".proofkit" / "changes" / change_id
+        change_dir = root / ".runproof" / "changes" / change_id
         for filename in ["proposal.md", "delta-spec.md", "design.md", "archive.md"]:
             path = change_dir / filename
             path.write_text(path.read_text(encoding="utf-8").replace("status: draft", "status: ready"), encoding="utf-8")
@@ -142,7 +142,7 @@ class TestVerify(unittest.TestCase):
             self.assertEqual(sdd.init_project(root), [])
             self.assertEqual(sdd.create_change(root, change_id, "standard", "Guard login"), [])
 
-        change_dir = root / ".proofkit" / "changes" / change_id
+        change_dir = root / ".runproof" / "changes" / change_id
         for filename in ["proposal.md", "delta-spec.md", "design.md", "archive.md"]:
             path = change_dir / filename
             path.write_text(path.read_text(encoding="utf-8").replace("status: draft", "status: ready"), encoding="utf-8")
@@ -162,7 +162,7 @@ class TestVerify(unittest.TestCase):
         self.assertEqual(findings, [])
         self.assertEqual(sdd.declared_workflow_phase(root, change_id), sdd.WorkflowPhase.VERIFY)
         self.assertEqual(sdd.validate_execution_evidence(root, change_id), [])
-        evidence_path = root / ".proofkit" / "evidence" / change_id / "verification.jsonl"
+        evidence_path = root / ".runproof" / "evidence" / change_id / "verification.jsonl"
         self.assertTrue(evidence_path.is_file())
         records = [json.loads(line) for line in evidence_path.read_text(encoding="utf-8").splitlines()]
         self.assertTrue(records[0]["passed"])
@@ -178,7 +178,7 @@ class TestVerify(unittest.TestCase):
             self.assertEqual(sdd.init_project(root), [])
             self.assertEqual(sdd.create_change(root, change_id, "standard", "Guard login"), [])
 
-        change_dir = root / ".proofkit" / "changes" / change_id
+        change_dir = root / ".runproof" / "changes" / change_id
         for filename in ["proposal.md", "delta-spec.md", "design.md"]:
             path = change_dir / filename
             path.write_text(path.read_text(encoding="utf-8").replace("status: draft", "status: ready"), encoding="utf-8")
@@ -207,7 +207,7 @@ class TestVerify(unittest.TestCase):
             self.assertEqual(sdd.init_project(root), [])
             self.assertEqual(sdd.create_change(root, change_id, "standard", "Guard login"), [])
 
-        change_dir = root / ".proofkit" / "changes" / change_id
+        change_dir = root / ".runproof" / "changes" / change_id
         for filename in ["proposal.md", "delta-spec.md", "design.md"]:
             path = change_dir / filename
             path.write_text(path.read_text(encoding="utf-8").replace("status: draft", "status: ready"), encoding="utf-8")
@@ -235,19 +235,19 @@ class TestVerify(unittest.TestCase):
             self.assertEqual(sdd.init_project(root), [])
             self.assertEqual(sdd.create_change(root, change_id, "standard", "Guard login"), [])
 
-        verification_path = root / ".proofkit" / "changes" / change_id / "verification.md"
+        verification_path = root / ".runproof" / "changes" / change_id / "verification.md"
         # Default template still has the placeholder Commands line
         findings = sdd.validate_verification_evidence(verification_path)
         messages = self.finding_messages(findings)
         self.assertTrue(any("placeholder" in m for m in messages))
 
     def test_public_verify_change_is_exported(self) -> None:
-        self.assertIs(proofkit.verify_change, sdd.verify_change)
-        self.assertIs(proofkit.validate_verification_evidence, sdd.validate_verification_evidence)
-        self.assertIs(proofkit.validate_execution_evidence, sdd.validate_execution_evidence)
+        self.assertIs(runproof.verify_change, sdd.verify_change)
+        self.assertIs(runproof.validate_verification_evidence, sdd.validate_verification_evidence)
+        self.assertIs(runproof.validate_execution_evidence, sdd.validate_execution_evidence)
 
     def test_gate_command_is_exported(self) -> None:
-        self.assertIs(proofkit.gate_command, sdd.gate_command)
+        self.assertIs(runproof.gate_command, sdd.gate_command)
 
     def test_archive_blocks_when_artifact_edited_after_archive_phase_recorded(self) -> None:
         root = REPO_ROOT / ".tmp-tests" / f"gate-stale-{uuid.uuid4().hex}"
@@ -257,7 +257,7 @@ class TestVerify(unittest.TestCase):
             self.assertEqual(sdd.init_project(root), [])
             self.assertEqual(sdd.create_change(root, change_id, "standard", "Guard login"), [])
 
-        change_dir = root / ".proofkit" / "changes" / change_id
+        change_dir = root / ".runproof" / "changes" / change_id
         for filename in ["proposal.md", "delta-spec.md", "design.md", "tasks.md", "archive.md"]:
             path = change_dir / filename
             path.write_text(path.read_text(encoding="utf-8").replace("status: draft", "status: ready"), encoding="utf-8")
@@ -282,7 +282,7 @@ class TestVerify(unittest.TestCase):
         findings = sdd.archive_change(root, change_id)
         self.assertEqual(len(findings), 1)
         self.assertIn("artifact checksum is stale", findings[0].message)
-        self.assertIn("proofkit transition", findings[0].message)
+        self.assertIn("runproof transition", findings[0].message)
 
     def test_verify_does_not_block_when_verification_md_edited_after_task(self) -> None:
         root = REPO_ROOT / ".tmp-tests" / f"verify-expects-edit-{uuid.uuid4().hex}"
@@ -292,7 +292,7 @@ class TestVerify(unittest.TestCase):
             self.assertEqual(sdd.init_project(root), [])
             self.assertEqual(sdd.create_change(root, change_id, "standard", "Guard login"), [])
 
-        change_dir = root / ".proofkit" / "changes" / change_id
+        change_dir = root / ".runproof" / "changes" / change_id
         for filename in ["proposal.md", "delta-spec.md", "design.md", "archive.md"]:
             path = change_dir / filename
             path.write_text(path.read_text(encoding="utf-8").replace("status: draft", "status: ready"), encoding="utf-8")
@@ -329,7 +329,7 @@ class TestVerify(unittest.TestCase):
             self.assertEqual(sdd.init_project(root), [])
             self.assertEqual(sdd.create_change(root, change_id, "standard", "Guard login"), [])
 
-        change_dir = root / ".proofkit" / "changes" / change_id
+        change_dir = root / ".runproof" / "changes" / change_id
         for filename in ["proposal.md", "delta-spec.md", "design.md", "archive.md"]:
             path = change_dir / filename
             path.write_text(path.read_text(encoding="utf-8").replace("status: draft", "status: ready"), encoding="utf-8")
@@ -398,7 +398,7 @@ class TestVerify(unittest.TestCase):
         # no phase recorded — no commands allowed
         self.assertEqual(engine.allowed_commands(change_id), [])
 
-        change_dir = root / ".proofkit" / "changes" / change_id
+        change_dir = root / ".runproof" / "changes" / change_id
         for filename in ["proposal.md", "delta-spec.md", "design.md", "archive.md"]:
             path = change_dir / filename
             path.write_text(path.read_text(encoding="utf-8").replace("status: draft", "status: ready"), encoding="utf-8")
@@ -417,8 +417,8 @@ class TestVerify(unittest.TestCase):
         self.assertNotIn("sync-specs", allowed)
 
     def test_workflow_engine_is_exported(self) -> None:
-        self.assertIs(proofkit.WorkflowEngine, sdd.WorkflowEngine)
-        self.assertIs(proofkit.COMMAND_GATES, sdd.COMMAND_GATES)
+        self.assertIs(runproof.WorkflowEngine, sdd.WorkflowEngine)
+        self.assertIs(runproof.COMMAND_GATES, sdd.COMMAND_GATES)
 
     # --- validate_verification_matrix ---
 
@@ -430,7 +430,7 @@ class TestVerify(unittest.TestCase):
             self.assertEqual(sdd.init_project(root), [])
             self.assertEqual(sdd.create_change(root, change_id, "standard", "Guard login"), [])
 
-        verification_path = root / ".proofkit" / "changes" / change_id / "verification.md"
+        verification_path = root / ".runproof" / "changes" / change_id / "verification.md"
         # Replace placeholder text but leave status as a non-passing value
         text = verification_path.read_text(encoding="utf-8")
         text = text.replace("pending verification evidence", "unit test evidence")
@@ -450,7 +450,7 @@ class TestVerify(unittest.TestCase):
             self.assertEqual(sdd.init_project(root), [])
             self.assertEqual(sdd.create_change(root, change_id, "standard", "Guard login"), [])
 
-        verification_path = root / ".proofkit" / "changes" / change_id / "verification.md"
+        verification_path = root / ".runproof" / "changes" / change_id / "verification.md"
         text = verification_path.read_text(encoding="utf-8")
         text = text.replace("pending verification evidence", "unit test evidence")
         text = text.replace("not-run", "pass")
@@ -461,7 +461,7 @@ class TestVerify(unittest.TestCase):
         self.assertEqual(findings, [])
 
     def test_validate_verification_matrix_is_exported(self) -> None:
-        self.assertIs(proofkit.validate_verification_matrix, sdd.validate_verification_matrix)
+        self.assertIs(runproof.validate_verification_matrix, sdd.validate_verification_matrix)
 
     def test_check_change_blocks_when_matrix_has_no_passing_row(self) -> None:
         root = REPO_ROOT / ".tmp-tests" / f"check-matrix-{uuid.uuid4().hex}"
@@ -471,7 +471,7 @@ class TestVerify(unittest.TestCase):
             self.assertEqual(sdd.init_project(root), [])
             self.assertEqual(sdd.create_change(root, change_id, "standard", "Guard login"), [])
 
-        change_dir = root / ".proofkit" / "changes" / change_id
+        change_dir = root / ".runproof" / "changes" / change_id
         for filename in ["proposal.md", "delta-spec.md", "design.md", "tasks.md", "archive.md"]:
             path = change_dir / filename
             path.write_text(path.read_text(encoding="utf-8").replace("status: draft", "status: ready"), encoding="utf-8")

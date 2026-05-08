@@ -150,7 +150,7 @@ def bootstrap_change(
     if not (root / SDD_DIR).is_dir():
         return (
             "",
-            [Finding("error", root / SDD_DIR, f"{SDD_DIR} directory not found — run 'proofkit init' first")],
+            [Finding("error", root / SDD_DIR, f"{SDD_DIR} directory not found — run 'runproof init' first")],
         )
 
     resolved_profile = suggest_profile(title) if profile == "auto" else profile

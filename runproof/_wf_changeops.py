@@ -400,14 +400,14 @@ def mark_artifact_ready(root: Path, change_id: str) -> list[Finding]:
                 "error",
                 change_dir,
                 f"phase '{phase_label}' has no editable artifact — "
-                "use `proofkit verify` to advance through the verify phase, "
-                "or `proofkit transition` for automated phases",
+                "use `runproof verify` to advance through the verify phase, "
+                "or `runproof transition` for automated phases",
             )
         ]
 
     path = change_dir / artifact_filename
     if not path.is_file():
-        return [Finding("error", path, f"{artifact_filename} is missing — run `proofkit run {change_id}` to recreate it")]
+        return [Finding("error", path, f"{artifact_filename} is missing — run `runproof run {change_id}` to recreate it")]
 
     text = path.read_text(encoding="utf-8")
     text = set_frontmatter_value(text, "status", "ready")
@@ -416,5 +416,5 @@ def mark_artifact_ready(root: Path, change_id: str) -> list[Finding]:
 
     rel = path.relative_to(root).as_posix()
     print(_green("\u2714") + f" Marked ready: {_bold(rel)}")
-    print(_dim(f"  Next: proofkit transition {change_id} {state.phase.value}"))
+    print(_dim(f"  Next: runproof transition {change_id} {state.phase.value}"))
     return []

@@ -11,8 +11,8 @@ import unittest
 from importlib.resources import files
 from pathlib import Path
 
-import proofkit
-from proofkit import cli as sdd
+import runproof
+from runproof import cli as sdd
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -55,7 +55,7 @@ class TestGolden(unittest.TestCase):
         # ── 2. Create standard-profile change ─────────────────────────────
         with contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(sdd.create_change(root, change_id, "standard", "Harden login"), [])
-        change_dir = root / ".proofkit" / "changes" / change_id
+        change_dir = root / ".runproof" / "changes" / change_id
         self.assertTrue(change_dir.is_dir())
 
         # ── 3. Agent fills proposal → auto-loop advances ─────────────────
@@ -166,9 +166,9 @@ class TestGolden(unittest.TestCase):
         # Change directory is gone.
         self.assertFalse(change_dir.exists())
         # Living spec was synced.
-        self.assertTrue((root / ".proofkit" / "specs" / change_id / "spec.md").is_file())
+        self.assertTrue((root / ".runproof" / "specs" / change_id / "spec.md").is_file())
         # Archive exists.
-        archives = [p for p in (root / ".proofkit" / "archive").iterdir() if p.is_dir()]
+        archives = [p for p in (root / ".runproof" / "archive").iterdir() if p.is_dir()]
         self.assertEqual(len(archives), 1)
         self.assertIn(change_id, archives[0].name)
 
@@ -196,7 +196,7 @@ class TestGolden(unittest.TestCase):
         with contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(sdd.init_project(root), [])
             self.assertEqual(sdd.create_change(root, change_id, "standard", "Harden login"), [])
-        change_dir = root / ".proofkit" / "changes" / change_id
+        change_dir = root / ".runproof" / "changes" / change_id
 
         # Fill all human-work artifacts.
         for name in ["proposal.md", "delta-spec.md", "design.md"]:
@@ -237,12 +237,12 @@ class TestGolden(unittest.TestCase):
         guard_findings = sdd.guard_repository(root, require_execution_evidence=True)
         # Change is still active at TASK, not archived.
         self.assertTrue(change_dir.exists())
-        archive_root = root / ".proofkit" / "archive"
+        archive_root = root / ".runproof" / "archive"
         archived_dirs = [p for p in archive_root.iterdir() if p.is_dir()] if archive_root.exists() else []
         self.assertEqual(archived_dirs, [])
 
         # ── 5. No spec sync ──────────────────────────────────────────────
-        self.assertFalse((root / ".proofkit" / "specs" / change_id).exists())
+        self.assertFalse((root / ".runproof" / "specs" / change_id).exists())
 
         # ── 6. Agent retries with PASSING command → verify succeeds ──────
         pass_cmd = f'"{sys.executable}" -c "print(\'retry-ok\')"'
@@ -275,7 +275,7 @@ class TestGolden(unittest.TestCase):
         )
         self.assertEqual(guard_findings, [], f"guard failed: {guard_findings}")
         self.assertFalse(change_dir.exists())
-        archives = [p for p in (root / ".proofkit" / "archive").iterdir() if p.is_dir()]
+        archives = [p for p in (root / ".runproof" / "archive").iterdir() if p.is_dir()]
         self.assertEqual(len(archives), 1)
 
 

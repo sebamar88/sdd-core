@@ -134,7 +134,7 @@ def _infer_workflow_state(root: Path, change_id: str) -> WorkflowState:
             change_id,
             WorkflowPhase.SYNC_SPECS,
             summary.profile,
-            f"Run `proofkit sync-specs {change_id} --root <repo>`.",
+            f"Run `runproof sync-specs {change_id} --root <repo>`.",
             [],
         )
 
@@ -142,7 +142,7 @@ def _infer_workflow_state(root: Path, change_id: str) -> WorkflowState:
         change_id,
         WorkflowPhase.ARCHIVE,
         summary.profile,
-        f"Run `proofkit archive {change_id} --root <repo>`.",
+        f"Run `runproof archive {change_id} --root <repo>`.",
         [],
     )
 
@@ -237,7 +237,7 @@ def run_workflow(
             change_id,
             WorkflowPhase.BLOCKED,
             profile,
-            "Initialize or repair the ProofKit foundation before running a workflow.",
+            "Initialize or repair the RunProof foundation before running a workflow.",
             foundation_errors,
         )
 

@@ -11,8 +11,8 @@ import unittest
 from importlib.resources import files
 from pathlib import Path
 
-import proofkit
-from proofkit import cli as sdd
+import runproof
+from runproof import cli as sdd
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -65,7 +65,7 @@ class TestWorkflow(unittest.TestCase):
             self.assertEqual(sdd.init_project(root), [])
             self.assertEqual(sdd.create_change(root, change_id, "standard", "Document example"), [])
 
-        change_dir = root / ".proofkit" / "changes" / change_id
+        change_dir = root / ".runproof" / "changes" / change_id
         for filename in ["proposal.md", "delta-spec.md", "design.md", "tasks.md", "archive.md"]:
             path = change_dir / filename
             path.write_text(path.read_text(encoding="utf-8").replace("status: draft", "status: ready"), encoding="utf-8")
@@ -89,8 +89,8 @@ class TestWorkflow(unittest.TestCase):
             self.assertEqual(sdd.archive_change(root, change_id), [])
 
         self.assertFalse(change_dir.exists())
-        self.assertTrue((root / ".proofkit" / "specs" / change_id / "spec.md").is_file())
-        archives = list((root / ".proofkit" / "archive").glob(f"*-{change_id}"))
+        self.assertTrue((root / ".runproof" / "specs" / change_id / "spec.md").is_file())
+        archives = list((root / ".runproof" / "archive").glob(f"*-{change_id}"))
         self.assertEqual(len(archives), 1)
 
     def test_archive_rejects_verified_change_before_spec_sync(self) -> None:
@@ -101,7 +101,7 @@ class TestWorkflow(unittest.TestCase):
             self.assertEqual(sdd.init_project(root), [])
             self.assertEqual(sdd.create_change(root, change_id, "standard", "Document example"), [])
 
-        change_dir = root / ".proofkit" / "changes" / change_id
+        change_dir = root / ".runproof" / "changes" / change_id
         for filename in ["proposal.md", "delta-spec.md", "design.md", "tasks.md", "archive.md"]:
             path = change_dir / filename
             path.write_text(path.read_text(encoding="utf-8").replace("status: draft", "status: ready"), encoding="utf-8")
@@ -132,7 +132,7 @@ class TestWorkflow(unittest.TestCase):
         self.assertEqual(state.phase, sdd.WorkflowPhase.PROPOSE)
         self.assertEqual(state.profile, "standard")
         self.assertEqual(state.findings, [])
-        self.assertTrue((root / ".proofkit" / "changes" / "guard-login" / "proposal.md").is_file())
+        self.assertTrue((root / ".runproof" / "changes" / "guard-login" / "proposal.md").is_file())
         self.assertEqual(sdd.declared_workflow_phase(root, "guard-login"), sdd.WorkflowPhase.PROPOSE)
 
     def test_transition_blocks_phase_when_artifacts_do_not_support_it(self) -> None:
@@ -155,7 +155,7 @@ class TestWorkflow(unittest.TestCase):
             self.assertEqual(sdd.init_project(root), [])
             self.assertEqual(sdd.run_workflow(root, change_id, "standard", "Guard login", create=True).phase, sdd.WorkflowPhase.PROPOSE)
 
-        proposal_path = root / ".proofkit" / "changes" / change_id / "proposal.md"
+        proposal_path = root / ".runproof" / "changes" / change_id / "proposal.md"
         proposal_path.write_text(proposal_path.read_text(encoding="utf-8").replace("status: draft", "status: ready"), encoding="utf-8")
 
         transitioned = sdd.transition_workflow(root, change_id, sdd.WorkflowPhase.SPECIFY)
@@ -170,7 +170,7 @@ class TestWorkflow(unittest.TestCase):
             self.assertEqual(sdd.init_project(root), [])
             self.assertEqual(sdd.run_workflow(root, change_id, "standard", "Guard login", create=True).phase, sdd.WorkflowPhase.PROPOSE)
 
-        proposal_path = root / ".proofkit" / "changes" / change_id / "proposal.md"
+        proposal_path = root / ".runproof" / "changes" / change_id / "proposal.md"
         proposal_path.write_text(proposal_path.read_text(encoding="utf-8").replace("status: draft", "status: ready"), encoding="utf-8")
 
         findings = sdd.guard_repository(root, require_active_change=True, strict_state=True)
@@ -187,7 +187,7 @@ class TestWorkflow(unittest.TestCase):
             self.assertEqual(sdd.init_project(root), [])
             self.assertEqual(sdd.create_change(root, change_id, "standard", "Guard login"), [])
 
-        change_dir = root / ".proofkit" / "changes" / change_id
+        change_dir = root / ".runproof" / "changes" / change_id
         self.assertEqual(sdd.infer_phase_from_artifacts(root, change_id), sdd.WorkflowPhase.PROPOSE)
 
         for filename in ["proposal.md", "delta-spec.md", "design.md", "tasks.md", "archive.md"]:
@@ -225,7 +225,7 @@ class TestWorkflow(unittest.TestCase):
             self.assertEqual(sdd.init_project(root), [])
             self.assertEqual(sdd.create_change(root, change_id, "standard", "Guard login"), [])
 
-        change_dir = root / ".proofkit" / "changes" / change_id
+        change_dir = root / ".runproof" / "changes" / change_id
         for filename in ["proposal.md", "delta-spec.md", "design.md", "tasks.md"]:
             path = change_dir / filename
             path.write_text(path.read_text(encoding="utf-8").replace("status: draft", "status: ready"), encoding="utf-8")
@@ -253,16 +253,16 @@ class TestWorkflow(unittest.TestCase):
             state = sdd.run_workflow(root, "guard-login", "standard", "Guard login", create=False)
 
         self.assertEqual(state.phase, sdd.WorkflowPhase.NOT_STARTED)
-        self.assertFalse((root / ".proofkit" / "changes" / "guard-login").exists())
+        self.assertFalse((root / ".runproof" / "changes" / "guard-login").exists())
 
     def test_public_workflow_orchestrator_is_exported(self) -> None:
-        self.assertIs(proofkit.SDDWorkflow, sdd.SDDWorkflow)
-        self.assertIs(proofkit.WorkflowPhase, sdd.WorkflowPhase)
-        self.assertIs(proofkit.WorkflowFailureKind, sdd.WorkflowFailureKind)
-        self.assertIs(proofkit.guard_repository, sdd.guard_repository)
-        self.assertIs(proofkit.install_hooks, sdd.install_hooks)
-        self.assertIs(proofkit.transition_workflow, sdd.transition_workflow)
-        self.assertIs(proofkit.declared_workflow_phase, sdd.declared_workflow_phase)
+        self.assertIs(runproof.SDDWorkflow, sdd.SDDWorkflow)
+        self.assertIs(runproof.WorkflowPhase, sdd.WorkflowPhase)
+        self.assertIs(runproof.WorkflowFailureKind, sdd.WorkflowFailureKind)
+        self.assertIs(runproof.guard_repository, sdd.guard_repository)
+        self.assertIs(runproof.install_hooks, sdd.install_hooks)
+        self.assertIs(runproof.transition_workflow, sdd.transition_workflow)
+        self.assertIs(runproof.declared_workflow_phase, sdd.declared_workflow_phase)
 
     def test_sdd_workflow_blocks_sync_before_required_phase(self) -> None:
         root = REPO_ROOT / ".tmp-tests" / f"workflow-api-block-{uuid.uuid4().hex}"
@@ -301,7 +301,7 @@ class TestWorkflow(unittest.TestCase):
 
         blocked = sdd.transition_workflow(root, change_id, sdd.WorkflowPhase.VERIFY)
         self.assertTrue(blocked.is_blocked)
-        self.assertTrue(any("proofkit verify" in f.message for f in blocked.findings))
+        self.assertTrue(any("runproof verify" in f.message for f in blocked.findings))
         # The dedicated verify command must also be unavailable before TASK is recorded
         findings = sdd.verify_change(root, change_id)
         self.assertEqual(len(findings), 1)
@@ -310,7 +310,7 @@ class TestWorkflow(unittest.TestCase):
     def test_transition_blocks_archived_phase(self) -> None:
         blocked = sdd.transition_workflow(REPO_ROOT, "any-change", sdd.WorkflowPhase.ARCHIVED)
         self.assertTrue(blocked.is_blocked)
-        self.assertTrue(any("proofkit archive" in f.message for f in blocked.findings))
+        self.assertTrue(any("runproof archive" in f.message for f in blocked.findings))
 
     def test_log_shows_history_after_transitions(self) -> None:
         root = REPO_ROOT / ".tmp-tests" / f"log-{uuid.uuid4().hex}"
@@ -327,7 +327,7 @@ class TestWorkflow(unittest.TestCase):
 
         self.assertEqual(result, 0)
         output = out.getvalue()
-        self.assertIn("SDD log", output)
+        self.assertIn("RunProof log", output)
         self.assertIn(change_id, output)
         self.assertIn("propose", output)
 
@@ -348,7 +348,7 @@ class TestWorkflow(unittest.TestCase):
         with contextlib.redirect_stdout(io.StringIO()):
             self.assertTrue(workflow.run(change_id, profile="standard", title="Guard login").ok)
 
-        change_dir = root / ".proofkit" / "changes" / change_id
+        change_dir = root / ".runproof" / "changes" / change_id
         for filename in ["proposal.md", "delta-spec.md", "design.md", "tasks.md", "archive.md"]:
             path = change_dir / filename
             path.write_text(path.read_text(encoding="utf-8").replace("status: draft", "status: ready"), encoding="utf-8")
@@ -420,7 +420,7 @@ class TestWorkflow(unittest.TestCase):
             self.assertEqual(sdd.init_project(root), [])
             self.assertEqual(sdd.create_change(root, change_id, "standard", "Guard login"), [])
 
-        change_dir = root / ".proofkit" / "changes" / change_id
+        change_dir = root / ".runproof" / "changes" / change_id
         for filename in ["proposal.md", "delta-spec.md", "design.md", "tasks.md", "archive.md"]:
             path = change_dir / filename
             path.write_text(path.read_text(encoding="utf-8").replace("status: draft", "status: ready"), encoding="utf-8")
@@ -435,7 +435,7 @@ class TestWorkflow(unittest.TestCase):
         verification_text = verification_text.replace("not-run", "pass")
         verification_path.write_text(verification_text, encoding="utf-8")
 
-        archive_dir = root / ".proofkit" / "archive" / f"2026-05-05-{change_id}"
+        archive_dir = root / ".runproof" / "archive" / f"2026-05-05-{change_id}"
         shutil.copytree(change_dir, archive_dir)
         shutil.rmtree(change_dir)
 
@@ -455,20 +455,20 @@ class TestWorkflow(unittest.TestCase):
         pre_commit = root / ".git" / "hooks" / "pre-commit"
         self.assertTrue(pre_commit.is_file())
         commit_text = pre_commit.read_text(encoding="utf-8")
-        self.assertIn("proofkit guard", commit_text)
+        self.assertIn("runproof guard", commit_text)
         self.assertIn("--require-active-change", commit_text)
         self.assertIn("--strict-state", commit_text)
 
         pre_push = root / ".git" / "hooks" / "pre-push"
         self.assertTrue(pre_push.is_file())
         push_text = pre_push.read_text(encoding="utf-8")
-        self.assertIn("proofkit guard", push_text)
+        self.assertIn("runproof guard", push_text)
         self.assertIn("--strict-state", push_text)
         self.assertNotIn("--require-active-change", push_text)
 
 
 class TestMarkArtifactReady(unittest.TestCase):
-    """Tests for the proofkit ready UX command."""
+    """Tests for the runproof ready UX command."""
 
     def _init_and_create(self, root: Path, change_id: str) -> None:
         with contextlib.redirect_stdout(io.StringIO()):
@@ -480,7 +480,7 @@ class TestMarkArtifactReady(unittest.TestCase):
         change_id = "add-feature"
         self._init_and_create(root, change_id)
 
-        proposal = root / ".proofkit" / "changes" / change_id / "proposal.md"
+        proposal = root / ".runproof" / "changes" / change_id / "proposal.md"
         self.assertIn("status: draft", proposal.read_text(encoding="utf-8"))
 
         with contextlib.redirect_stdout(io.StringIO()):
@@ -503,7 +503,7 @@ class TestMarkArtifactReady(unittest.TestCase):
         self.assertTrue(any(f.severity == "error" for f in findings))
 
     def test_ready_exported_from_package(self) -> None:
-        self.assertTrue(callable(proofkit.mark_artifact_ready))
+        self.assertTrue(callable(runproof.mark_artifact_ready))
 
 
 if __name__ == "__main__":

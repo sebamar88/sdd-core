@@ -20,7 +20,7 @@ import uuid
 import unittest
 from pathlib import Path
 
-from proofkit import cli as sdd
+from runproof import cli as sdd
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -39,7 +39,7 @@ def _init(root: Path, change_id: str) -> None:
 
 def _make_artifacts_ready(root: Path, change_id: str) -> None:
     """Set all standard artifact statuses to 'ready' and tasks to complete."""
-    change_dir = root / ".proofkit" / "changes" / change_id
+    change_dir = root / ".runproof" / "changes" / change_id
     for filename in ["proposal.md", "delta-spec.md", "design.md", "archive.md"]:
         path = change_dir / filename
         path.write_text(path.read_text(encoding="utf-8").replace("status: draft", "status: ready"), encoding="utf-8")
@@ -50,7 +50,7 @@ def _make_artifacts_ready(root: Path, change_id: str) -> None:
 
 def _make_verification_ready(root: Path, change_id: str) -> None:
     """Set verification.md to verified status with real (non-placeholder) evidence."""
-    verification_path = root / ".proofkit" / "changes" / change_id / "verification.md"
+    verification_path = root / ".runproof" / "changes" / change_id / "verification.md"
     text = verification_path.read_text(encoding="utf-8")
     text = text.replace("status: draft", "status: verified")
     text = text.replace("pending verification evidence", "all unit tests pass")
@@ -77,7 +77,7 @@ class TestTransitionAtomicity(unittest.TestCase):
         change_id = "my-change"
         _init(root, change_id)
 
-        state_path = root / ".proofkit" / "state.json"
+        state_path = root / ".runproof" / "state.json"
         before = json.loads(state_path.read_text(encoding="utf-8"))
 
         # DESIGN cannot be reached directly from PROPOSE — should be blocked.
@@ -263,7 +263,7 @@ class TestValidationCrossArtifact(unittest.TestCase):
         _init(root, change_id)
 
         # Corrupt the proposal frontmatter with a wrong change_id.
-        proposal_path = root / ".proofkit" / "changes" / change_id / "proposal.md"
+        proposal_path = root / ".runproof" / "changes" / change_id / "proposal.md"
         text = proposal_path.read_text(encoding="utf-8")
         corrupted = text.replace(f"change_id: {change_id}", "change_id: wrong-change-id")
         proposal_path.write_text(corrupted, encoding="utf-8")

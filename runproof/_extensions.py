@@ -1,4 +1,4 @@
-"""proofkit._extensions — Extension system for ProofKit.
+"""runproof._extensions — Extension system for RunProof.
 
 Third-party extensions can add profiles, agents, skills, and command scaffolds
 without forking the core package.  They may also ship a ``hooks.py`` that

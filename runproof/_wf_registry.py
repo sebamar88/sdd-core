@@ -193,7 +193,7 @@ def require_recorded_phase(root: Path, change_id: str, expected: WorkflowPhase) 
             Finding(
                 "error",
                 change_location(root, change_id) or workflow_registry_path(root),
-                f"workflow phase must be recorded before running this command; run `proofkit transition {change_id} {expected.value}`",
+                f"workflow phase must be recorded before running this command; run `runproof transition {change_id} {expected.value}`",
             )
         ]
 
@@ -248,7 +248,7 @@ def gate_command(
                 "error",
                 location or workflow_registry_path(root),
                 f"artifact checksum is stale since {required_phase.value} was recorded; "
-                f"run `proofkit transition {change_id} {required_phase.value}` to acknowledge changes before proceeding",
+                f"run `runproof transition {change_id} {required_phase.value}` to acknowledge changes before proceeding",
             )
         ]
     return []
@@ -310,7 +310,7 @@ def validate_workflow_registry(root: Path, *, strict_state: bool = False) -> lis
                     Finding(
                         "error",
                         location or path,
-                        f"workflow state checksum is stale for {change_id}; run `proofkit transition {change_id} <phase>` after intentional artifact changes",
+                        f"workflow state checksum is stale for {change_id}; run `runproof transition {change_id} <phase>` after intentional artifact changes",
                     )
                 )
 
@@ -339,9 +339,9 @@ def transition_workflow(root: Path, change_id: str, target_phase: WorkflowPhase)
         return WorkflowState(change_id, WorkflowPhase.BLOCKED, "unknown", "Use a kebab-case change id.", findings)
     if target_phase in TRANSITION_RESTRICTED_PHASES:
         if target_phase == WorkflowPhase.VERIFY:
-            message = f"use `proofkit verify {change_id}` to record the verify phase; it enforces evidence quality before recording"
+            message = f"use `runproof verify {change_id}` to record the verify phase; it enforces evidence quality before recording"
         elif target_phase == WorkflowPhase.ARCHIVED:
-            message = f"use `proofkit archive {change_id}` to archive a change"
+            message = f"use `runproof archive {change_id}` to archive a change"
         else:
             message = f"cannot transition to {target_phase.value}"
         return WorkflowState(

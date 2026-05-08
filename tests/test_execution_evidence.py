@@ -11,8 +11,8 @@ import unittest
 from importlib.resources import files
 from pathlib import Path
 
-import proofkit
-from proofkit import cli as sdd
+import runproof
+from runproof import cli as sdd
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -32,7 +32,7 @@ class TestExecutionEvidence(unittest.TestCase):
         with contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(sdd.init_project(root), [])
             self.assertEqual(sdd.create_change(root, change_id, "quick", "Test change"), [])
-        return root / ".proofkit" / "changes" / change_id
+        return root / ".runproof" / "changes" / change_id
 
     def _fill_proposal(self, change_dir: Path) -> None:
         p = change_dir / "proposal.md"
@@ -190,7 +190,7 @@ class TestExecutionEvidence(unittest.TestCase):
     def test_require_command_flag_blocks_verify_when_no_commands_given(self) -> None:
         """When CI policy sets require_command=True, passing zero commands must block.
 
-        This is the enforcement path of `proofkit verify --require-command`:
+        This is the enforcement path of `runproof verify --require-command`:
         an agent cannot skip execution evidence simply by omitting --command.
         """
         root = REPO_ROOT / ".tmp-tests" / f"lie-nocommand-{uuid.uuid4().hex}"

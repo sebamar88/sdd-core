@@ -1,4 +1,4 @@
-"""Public interface for the proofkit workflow subsystem.
+"""Public interface for the runproof workflow subsystem.
 
 This module is a thin aggregator — all implementation lives in the _wf_*
 sub-modules.  External callers (cli.py, __init__.py, tests) continue to

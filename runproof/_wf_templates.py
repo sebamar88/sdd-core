@@ -125,7 +125,7 @@ def install_commands(
     *,
     _home: Path | None = None,
 ) -> list[Finding]:
-    """Install ProofKit AI command scaffold files for *integration* at the given *scope*."""
+    """Install RunProof AI command scaffold files for *integration* at the given *scope*."""
     if integration not in _INTEGRATION_COMMAND_DIRS:
         known = ", ".join(sorted(_INTEGRATION_COMMAND_DIRS))
         return [Finding("error", None, f"unknown integration '{integration}'; known: {known}")]

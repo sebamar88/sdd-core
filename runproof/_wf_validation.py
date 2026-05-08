@@ -207,8 +207,8 @@ def validate_protocol_pointer(root: Path) -> list[Finding]:
         return findings
 
     text = protocol_path.read_text(encoding="utf-8")
-    canonical = root / "docs" / "proofkit-protocol-v0.1.md"
-    if "docs/proofkit-protocol-v0.1.md" not in text and "docs\\proofkit-protocol-v0.1.md" not in text:
+    canonical = root / "docs" / "runproof-protocol-v0.1.md"
+    if "docs/runproof-protocol-v0.1.md" not in text and "docs\\runproof-protocol-v0.1.md" not in text:
         findings.append(Finding("warning", protocol_path, "protocol pointer does not name the canonical v0.1 spec"))
     if not canonical.is_file():
         findings.append(Finding("error", canonical, "canonical protocol spec is missing"))
@@ -282,5 +282,5 @@ def init_project(root: Path) -> list[Finding]:
         if src.is_file() and not dst.exists():
             copy_template_file(src, dst)
 
-    print(f"Initialized ProofKit at: {target.as_posix()}")
+    print(f"Initialized RunProof at: {target.as_posix()}")
     return []

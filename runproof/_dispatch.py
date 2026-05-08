@@ -1,4 +1,4 @@
-"""Multi-agent dispatcher for ProofKit.
+"""Multi-agent dispatcher for RunProof.
 
 Provides a lightweight, pluggable interface for running AI agent CLI tools as
 subprocesses.  Zero runtime dependencies — uses only the stdlib ``subprocess``

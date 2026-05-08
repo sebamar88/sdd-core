@@ -11,19 +11,12 @@ import unittest
 from importlib.resources import files
 from pathlib import Path
 
-import proofkit
-from proofkit import cli as sdd
+import runproof
+from runproof import cli as sdd
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
-_COMMAND_FILE_NAMES = [
-    "sdd-propose.md",
-    "sdd-specify.md",
-    "sdd-design.md",
-    "sdd-tasks.md",
-    "sdd-verify.md",
-    "sdd-status.md",
-]
+_COMMAND_FILE_NAMES: list[str] = []
 
 
 class SddToolingTests(unittest.TestCase):
@@ -68,19 +61,19 @@ class SddToolingTests(unittest.TestCase):
         self.assertEqual(package["version"], sdd.VERSION)
 
     def test_packaged_templates_are_present(self) -> None:
-        template_root = files("proofkit").joinpath("templates")
+        template_root = files("runproof").joinpath("templates")
 
-        self.assertTrue(template_root.joinpath("sdd", "constitution.md").is_file())
-        self.assertTrue(template_root.joinpath("sdd", "state.json").is_file())
-        self.assertTrue(template_root.joinpath("sdd", "evidence", ".gitkeep").is_file())
-        self.assertTrue(template_root.joinpath("sdd", "adapters", "generic-markdown.json").is_file())
-        self.assertTrue(template_root.joinpath("sdd", "adapters", "codex.json").is_file())
-        self.assertTrue(template_root.joinpath("sdd", "adapters", "claude-code.json").is_file())
-        self.assertTrue(template_root.joinpath("sdd", "adapters", "gemini-cli.json").is_file())
-        self.assertTrue(template_root.joinpath("sdd", "adapters", "opencode.json").is_file())
-        self.assertTrue(template_root.joinpath("sdd", "adapters", "qwen-code.json").is_file())
+        self.assertTrue(template_root.joinpath("runproof", "constitution.md").is_file())
+        self.assertTrue(template_root.joinpath("runproof", "state.json").is_file())
+        self.assertTrue(template_root.joinpath("runproof", "evidence", ".gitkeep").is_file())
+        self.assertTrue(template_root.joinpath("runproof", "adapters", "generic-markdown.json").is_file())
+        self.assertTrue(template_root.joinpath("runproof", "adapters", "codex.json").is_file())
+        self.assertTrue(template_root.joinpath("runproof", "adapters", "claude-code.json").is_file())
+        self.assertTrue(template_root.joinpath("runproof", "adapters", "gemini-cli.json").is_file())
+        self.assertTrue(template_root.joinpath("runproof", "adapters", "opencode.json").is_file())
+        self.assertTrue(template_root.joinpath("runproof", "adapters", "qwen-code.json").is_file())
         self.assertTrue(template_root.joinpath("docs", "adapters-v0.1.md").is_file())
-        self.assertTrue(template_root.joinpath("docs", "proofkit-protocol-v0.1.md").is_file())
+        self.assertTrue(template_root.joinpath("docs", "runproof-protocol-v0.1.md").is_file())
 
     def test_standard_profile_artifacts_are_defined(self) -> None:
         self.assertEqual(
@@ -148,10 +141,10 @@ class SddToolingTests(unittest.TestCase):
             findings = sdd.init_project(root)
 
         self.assertEqual(findings, [])
-        self.assertTrue((root / ".proofkit" / "constitution.md").is_file())
-        self.assertTrue((root / ".proofkit" / "state.json").is_file())
-        self.assertTrue((root / ".proofkit" / "evidence").is_dir())
-        self.assertTrue((root / ".proofkit" / "adapters" / "generic-markdown.json").is_file())
+        self.assertTrue((root / ".runproof" / "constitution.md").is_file())
+        self.assertTrue((root / ".runproof" / "state.json").is_file())
+        self.assertTrue((root / ".runproof" / "evidence").is_dir())
+        self.assertTrue((root / ".runproof" / "adapters" / "generic-markdown.json").is_file())
         self.assertEqual(sdd.validate(root), [])
 
     def test_validate_requires_change_id_to_match_change_directory(self) -> None:
@@ -161,7 +154,7 @@ class SddToolingTests(unittest.TestCase):
             self.assertEqual(sdd.init_project(root), [])
             self.assertEqual(sdd.create_change(root, "demo-change", "standard", "Demo"), [])
 
-        proposal_path = root / ".proofkit" / "changes" / "demo-change" / "proposal.md"
+        proposal_path = root / ".runproof" / "changes" / "demo-change" / "proposal.md"
         proposal_text = proposal_path.read_text(encoding="utf-8")
         proposal_path.write_text(proposal_text.replace("change_id: demo-change", "change_id: wrong-id"), encoding="utf-8")
 
@@ -176,7 +169,7 @@ class SddToolingTests(unittest.TestCase):
             self.assertEqual(sdd.init_project(root), [])
             self.assertEqual(sdd.create_change(root, "demo-change", "standard", "Demo"), [])
 
-        proposal_path = root / ".proofkit" / "changes" / "demo-change" / "proposal.md"
+        proposal_path = root / ".runproof" / "changes" / "demo-change" / "proposal.md"
         proposal_text = proposal_path.read_text(encoding="utf-8")
         proposal_path.write_text(proposal_text.replace("profile: standard\n", ""), encoding="utf-8")
 
@@ -191,7 +184,7 @@ class SddToolingTests(unittest.TestCase):
             self.assertEqual(sdd.init_project(root), [])
             self.assertEqual(sdd.create_change(root, "demo-change", "standard", "Demo"), [])
 
-        proposal_path = root / ".proofkit" / "changes" / "demo-change" / "proposal.md"
+        proposal_path = root / ".runproof" / "changes" / "demo-change" / "proposal.md"
         proposal_text = proposal_path.read_text(encoding="utf-8")
         proposal_path.write_text(proposal_text.replace("artifact: proposal", "artifact: design"), encoding="utf-8")
 
@@ -205,7 +198,7 @@ class SddToolingTests(unittest.TestCase):
         with contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(sdd.init_project(root), [])
 
-        constitution_path = root / ".proofkit" / "constitution.md"
+        constitution_path = root / ".runproof" / "constitution.md"
         constitution_text = constitution_path.read_text(encoding="utf-8")
         constitution_path.write_text(constitution_text.replace("created: 2026-05-03", "created: 2026-13-40"), encoding="utf-8")
 
@@ -219,7 +212,7 @@ class SddToolingTests(unittest.TestCase):
         with contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(sdd.init_project(root), [])
 
-        spec_dir = root / ".proofkit" / "specs" / "demo-change"
+        spec_dir = root / ".runproof" / "specs" / "demo-change"
         spec_dir.mkdir(parents=True)
         spec_path = spec_dir / "spec.md"
         spec_path.write_text(
@@ -279,7 +272,7 @@ class SddToolingTests(unittest.TestCase):
             self.assertEqual(sdd.init_project(root), [])
             self.assertEqual(sdd.create_change(root, change_id, "standard", "Document example"), [])
 
-        change_dir = root / ".proofkit" / "changes" / change_id
+        change_dir = root / ".runproof" / "changes" / change_id
         for filename in ["proposal.md", "delta-spec.md", "design.md", "tasks.md", "archive.md"]:
             path = change_dir / filename
             path.write_text(path.read_text(encoding="utf-8").replace("status: draft", "status: ready"), encoding="utf-8")
@@ -303,8 +296,8 @@ class SddToolingTests(unittest.TestCase):
             self.assertEqual(sdd.archive_change(root, change_id), [])
 
         self.assertFalse(change_dir.exists())
-        self.assertTrue((root / ".proofkit" / "specs" / change_id / "spec.md").is_file())
-        archives = list((root / ".proofkit" / "archive").glob(f"*-{change_id}"))
+        self.assertTrue((root / ".runproof" / "specs" / change_id / "spec.md").is_file())
+        archives = list((root / ".runproof" / "archive").glob(f"*-{change_id}"))
         self.assertEqual(len(archives), 1)
 
     def test_archive_rejects_verified_change_before_spec_sync(self) -> None:
@@ -315,7 +308,7 @@ class SddToolingTests(unittest.TestCase):
             self.assertEqual(sdd.init_project(root), [])
             self.assertEqual(sdd.create_change(root, change_id, "standard", "Document example"), [])
 
-        change_dir = root / ".proofkit" / "changes" / change_id
+        change_dir = root / ".runproof" / "changes" / change_id
         for filename in ["proposal.md", "delta-spec.md", "design.md", "tasks.md", "archive.md"]:
             path = change_dir / filename
             path.write_text(path.read_text(encoding="utf-8").replace("status: draft", "status: ready"), encoding="utf-8")
@@ -346,7 +339,7 @@ class SddToolingTests(unittest.TestCase):
         self.assertEqual(state.phase, sdd.WorkflowPhase.PROPOSE)
         self.assertEqual(state.profile, "standard")
         self.assertEqual(state.findings, [])
-        self.assertTrue((root / ".proofkit" / "changes" / "guard-login" / "proposal.md").is_file())
+        self.assertTrue((root / ".runproof" / "changes" / "guard-login" / "proposal.md").is_file())
         self.assertEqual(sdd.declared_workflow_phase(root, "guard-login"), sdd.WorkflowPhase.PROPOSE)
 
     def test_transition_blocks_phase_when_artifacts_do_not_support_it(self) -> None:
@@ -369,7 +362,7 @@ class SddToolingTests(unittest.TestCase):
             self.assertEqual(sdd.init_project(root), [])
             self.assertEqual(sdd.run_workflow(root, change_id, "standard", "Guard login", create=True).phase, sdd.WorkflowPhase.PROPOSE)
 
-        proposal_path = root / ".proofkit" / "changes" / change_id / "proposal.md"
+        proposal_path = root / ".runproof" / "changes" / change_id / "proposal.md"
         proposal_path.write_text(proposal_path.read_text(encoding="utf-8").replace("status: draft", "status: ready"), encoding="utf-8")
 
         transitioned = sdd.transition_workflow(root, change_id, sdd.WorkflowPhase.SPECIFY)
@@ -384,7 +377,7 @@ class SddToolingTests(unittest.TestCase):
             self.assertEqual(sdd.init_project(root), [])
             self.assertEqual(sdd.run_workflow(root, change_id, "standard", "Guard login", create=True).phase, sdd.WorkflowPhase.PROPOSE)
 
-        proposal_path = root / ".proofkit" / "changes" / change_id / "proposal.md"
+        proposal_path = root / ".runproof" / "changes" / change_id / "proposal.md"
         proposal_path.write_text(proposal_path.read_text(encoding="utf-8").replace("status: draft", "status: ready"), encoding="utf-8")
 
         findings = sdd.guard_repository(root, require_active_change=True, strict_state=True)
@@ -401,7 +394,7 @@ class SddToolingTests(unittest.TestCase):
             self.assertEqual(sdd.init_project(root), [])
             self.assertEqual(sdd.create_change(root, change_id, "standard", "Guard login"), [])
 
-        change_dir = root / ".proofkit" / "changes" / change_id
+        change_dir = root / ".runproof" / "changes" / change_id
         self.assertEqual(sdd.infer_phase_from_artifacts(root, change_id), sdd.WorkflowPhase.PROPOSE)
 
         for filename in ["proposal.md", "delta-spec.md", "design.md", "tasks.md", "archive.md"]:
@@ -439,7 +432,7 @@ class SddToolingTests(unittest.TestCase):
             self.assertEqual(sdd.init_project(root), [])
             self.assertEqual(sdd.create_change(root, change_id, "standard", "Guard login"), [])
 
-        change_dir = root / ".proofkit" / "changes" / change_id
+        change_dir = root / ".runproof" / "changes" / change_id
         for filename in ["proposal.md", "delta-spec.md", "design.md", "tasks.md"]:
             path = change_dir / filename
             path.write_text(path.read_text(encoding="utf-8").replace("status: draft", "status: ready"), encoding="utf-8")
@@ -467,16 +460,16 @@ class SddToolingTests(unittest.TestCase):
             state = sdd.run_workflow(root, "guard-login", "standard", "Guard login", create=False)
 
         self.assertEqual(state.phase, sdd.WorkflowPhase.NOT_STARTED)
-        self.assertFalse((root / ".proofkit" / "changes" / "guard-login").exists())
+        self.assertFalse((root / ".runproof" / "changes" / "guard-login").exists())
 
     def test_public_workflow_orchestrator_is_exported(self) -> None:
-        self.assertIs(proofkit.SDDWorkflow, sdd.SDDWorkflow)
-        self.assertIs(proofkit.WorkflowPhase, sdd.WorkflowPhase)
-        self.assertIs(proofkit.WorkflowFailureKind, sdd.WorkflowFailureKind)
-        self.assertIs(proofkit.guard_repository, sdd.guard_repository)
-        self.assertIs(proofkit.install_hooks, sdd.install_hooks)
-        self.assertIs(proofkit.transition_workflow, sdd.transition_workflow)
-        self.assertIs(proofkit.declared_workflow_phase, sdd.declared_workflow_phase)
+        self.assertIs(runproof.SDDWorkflow, sdd.SDDWorkflow)
+        self.assertIs(runproof.WorkflowPhase, sdd.WorkflowPhase)
+        self.assertIs(runproof.WorkflowFailureKind, sdd.WorkflowFailureKind)
+        self.assertIs(runproof.guard_repository, sdd.guard_repository)
+        self.assertIs(runproof.install_hooks, sdd.install_hooks)
+        self.assertIs(runproof.transition_workflow, sdd.transition_workflow)
+        self.assertIs(runproof.declared_workflow_phase, sdd.declared_workflow_phase)
 
     def test_sdd_workflow_blocks_sync_before_required_phase(self) -> None:
         root = REPO_ROOT / ".tmp-tests" / f"workflow-api-block-{uuid.uuid4().hex}"
@@ -515,7 +508,7 @@ class SddToolingTests(unittest.TestCase):
 
         blocked = sdd.transition_workflow(root, change_id, sdd.WorkflowPhase.VERIFY)
         self.assertTrue(blocked.is_blocked)
-        self.assertTrue(any("proofkit verify" in f.message for f in blocked.findings))
+        self.assertTrue(any("runproof verify" in f.message for f in blocked.findings))
         # The dedicated verify command must also be unavailable before TASK is recorded
         findings = sdd.verify_change(root, change_id)
         self.assertEqual(len(findings), 1)
@@ -524,7 +517,7 @@ class SddToolingTests(unittest.TestCase):
     def test_transition_blocks_archived_phase(self) -> None:
         blocked = sdd.transition_workflow(REPO_ROOT, "any-change", sdd.WorkflowPhase.ARCHIVED)
         self.assertTrue(blocked.is_blocked)
-        self.assertTrue(any("proofkit archive" in f.message for f in blocked.findings))
+        self.assertTrue(any("runproof archive" in f.message for f in blocked.findings))
 
     def test_log_shows_history_after_transitions(self) -> None:
         root = REPO_ROOT / ".tmp-tests" / f"log-{uuid.uuid4().hex}"
@@ -541,7 +534,7 @@ class SddToolingTests(unittest.TestCase):
 
         self.assertEqual(result, 0)
         output = out.getvalue()
-        self.assertIn("SDD log", output)
+        self.assertIn("RunProof log", output)
         self.assertIn(change_id, output)
         self.assertIn("propose", output)
 
@@ -562,7 +555,7 @@ class SddToolingTests(unittest.TestCase):
         with contextlib.redirect_stdout(io.StringIO()):
             self.assertTrue(workflow.run(change_id, profile="standard", title="Guard login").ok)
 
-        change_dir = root / ".proofkit" / "changes" / change_id
+        change_dir = root / ".runproof" / "changes" / change_id
         for filename in ["proposal.md", "delta-spec.md", "design.md", "tasks.md", "archive.md"]:
             path = change_dir / filename
             path.write_text(path.read_text(encoding="utf-8").replace("status: draft", "status: ready"), encoding="utf-8")
@@ -634,7 +627,7 @@ class SddToolingTests(unittest.TestCase):
             self.assertEqual(sdd.init_project(root), [])
             self.assertEqual(sdd.create_change(root, change_id, "standard", "Guard login"), [])
 
-        change_dir = root / ".proofkit" / "changes" / change_id
+        change_dir = root / ".runproof" / "changes" / change_id
         for filename in ["proposal.md", "delta-spec.md", "design.md", "tasks.md", "archive.md"]:
             path = change_dir / filename
             path.write_text(path.read_text(encoding="utf-8").replace("status: draft", "status: ready"), encoding="utf-8")
@@ -649,7 +642,7 @@ class SddToolingTests(unittest.TestCase):
         verification_text = verification_text.replace("not-run", "pass")
         verification_path.write_text(verification_text, encoding="utf-8")
 
-        archive_dir = root / ".proofkit" / "archive" / f"2026-05-05-{change_id}"
+        archive_dir = root / ".runproof" / "archive" / f"2026-05-05-{change_id}"
         shutil.copytree(change_dir, archive_dir)
         shutil.rmtree(change_dir)
 
@@ -669,14 +662,14 @@ class SddToolingTests(unittest.TestCase):
         pre_commit = root / ".git" / "hooks" / "pre-commit"
         self.assertTrue(pre_commit.is_file())
         commit_text = pre_commit.read_text(encoding="utf-8")
-        self.assertIn("proofkit guard", commit_text)
+        self.assertIn("runproof guard", commit_text)
         self.assertIn("--require-active-change", commit_text)
         self.assertIn("--strict-state", commit_text)
 
         pre_push = root / ".git" / "hooks" / "pre-push"
         self.assertTrue(pre_push.is_file())
         push_text = pre_push.read_text(encoding="utf-8")
-        self.assertIn("proofkit guard", push_text)
+        self.assertIn("runproof guard", push_text)
         self.assertIn("--strict-state", push_text)
         self.assertNotIn("--require-active-change", push_text)
 
@@ -701,7 +694,7 @@ class SddToolingTests(unittest.TestCase):
             self.assertEqual(sdd.create_change(root, change_id, "standard", "Guard login"), [])
 
         # Record TASK phase without real evidence so verify_change can be called
-        change_dir = root / ".proofkit" / "changes" / change_id
+        change_dir = root / ".runproof" / "changes" / change_id
         for filename in ["proposal.md", "delta-spec.md", "design.md", "archive.md"]:
             path = change_dir / filename
             path.write_text(path.read_text(encoding="utf-8").replace("status: draft", "status: ready"), encoding="utf-8")
@@ -731,7 +724,7 @@ class SddToolingTests(unittest.TestCase):
             self.assertEqual(sdd.init_project(root), [])
             self.assertEqual(sdd.create_change(root, change_id, "standard", "Guard login"), [])
 
-        change_dir = root / ".proofkit" / "changes" / change_id
+        change_dir = root / ".runproof" / "changes" / change_id
         for filename in ["proposal.md", "delta-spec.md", "design.md", "archive.md"]:
             path = change_dir / filename
             path.write_text(path.read_text(encoding="utf-8").replace("status: draft", "status: ready"), encoding="utf-8")
@@ -765,7 +758,7 @@ class SddToolingTests(unittest.TestCase):
             self.assertEqual(sdd.init_project(root), [])
             self.assertEqual(sdd.create_change(root, change_id, "standard", "Guard login"), [])
 
-        change_dir = root / ".proofkit" / "changes" / change_id
+        change_dir = root / ".runproof" / "changes" / change_id
         for filename in ["proposal.md", "delta-spec.md", "design.md", "archive.md"]:
             path = change_dir / filename
             path.write_text(path.read_text(encoding="utf-8").replace("status: draft", "status: ready"), encoding="utf-8")
@@ -785,7 +778,7 @@ class SddToolingTests(unittest.TestCase):
         self.assertEqual(findings, [])
         self.assertEqual(sdd.declared_workflow_phase(root, change_id), sdd.WorkflowPhase.VERIFY)
         self.assertEqual(sdd.validate_execution_evidence(root, change_id), [])
-        evidence_path = root / ".proofkit" / "evidence" / change_id / "verification.jsonl"
+        evidence_path = root / ".runproof" / "evidence" / change_id / "verification.jsonl"
         self.assertTrue(evidence_path.is_file())
         records = [json.loads(line) for line in evidence_path.read_text(encoding="utf-8").splitlines()]
         self.assertTrue(records[0]["passed"])
@@ -801,7 +794,7 @@ class SddToolingTests(unittest.TestCase):
             self.assertEqual(sdd.init_project(root), [])
             self.assertEqual(sdd.create_change(root, change_id, "standard", "Guard login"), [])
 
-        change_dir = root / ".proofkit" / "changes" / change_id
+        change_dir = root / ".runproof" / "changes" / change_id
         for filename in ["proposal.md", "delta-spec.md", "design.md"]:
             path = change_dir / filename
             path.write_text(path.read_text(encoding="utf-8").replace("status: draft", "status: ready"), encoding="utf-8")
@@ -830,7 +823,7 @@ class SddToolingTests(unittest.TestCase):
             self.assertEqual(sdd.init_project(root), [])
             self.assertEqual(sdd.create_change(root, change_id, "standard", "Guard login"), [])
 
-        change_dir = root / ".proofkit" / "changes" / change_id
+        change_dir = root / ".runproof" / "changes" / change_id
         for filename in ["proposal.md", "delta-spec.md", "design.md"]:
             path = change_dir / filename
             path.write_text(path.read_text(encoding="utf-8").replace("status: draft", "status: ready"), encoding="utf-8")
@@ -858,19 +851,19 @@ class SddToolingTests(unittest.TestCase):
             self.assertEqual(sdd.init_project(root), [])
             self.assertEqual(sdd.create_change(root, change_id, "standard", "Guard login"), [])
 
-        verification_path = root / ".proofkit" / "changes" / change_id / "verification.md"
+        verification_path = root / ".runproof" / "changes" / change_id / "verification.md"
         # Default template still has the placeholder Commands line
         findings = sdd.validate_verification_evidence(verification_path)
         messages = self.finding_messages(findings)
         self.assertTrue(any("placeholder" in m for m in messages))
 
     def test_public_verify_change_is_exported(self) -> None:
-        self.assertIs(proofkit.verify_change, sdd.verify_change)
-        self.assertIs(proofkit.validate_verification_evidence, sdd.validate_verification_evidence)
-        self.assertIs(proofkit.validate_execution_evidence, sdd.validate_execution_evidence)
+        self.assertIs(runproof.verify_change, sdd.verify_change)
+        self.assertIs(runproof.validate_verification_evidence, sdd.validate_verification_evidence)
+        self.assertIs(runproof.validate_execution_evidence, sdd.validate_execution_evidence)
 
     def test_gate_command_is_exported(self) -> None:
-        self.assertIs(proofkit.gate_command, sdd.gate_command)
+        self.assertIs(runproof.gate_command, sdd.gate_command)
 
     def test_archive_blocks_when_artifact_edited_after_archive_phase_recorded(self) -> None:
         root = REPO_ROOT / ".tmp-tests" / f"gate-stale-{uuid.uuid4().hex}"
@@ -880,7 +873,7 @@ class SddToolingTests(unittest.TestCase):
             self.assertEqual(sdd.init_project(root), [])
             self.assertEqual(sdd.create_change(root, change_id, "standard", "Guard login"), [])
 
-        change_dir = root / ".proofkit" / "changes" / change_id
+        change_dir = root / ".runproof" / "changes" / change_id
         for filename in ["proposal.md", "delta-spec.md", "design.md", "tasks.md", "archive.md"]:
             path = change_dir / filename
             path.write_text(path.read_text(encoding="utf-8").replace("status: draft", "status: ready"), encoding="utf-8")
@@ -905,7 +898,7 @@ class SddToolingTests(unittest.TestCase):
         findings = sdd.archive_change(root, change_id)
         self.assertEqual(len(findings), 1)
         self.assertIn("artifact checksum is stale", findings[0].message)
-        self.assertIn("proofkit transition", findings[0].message)
+        self.assertIn("runproof transition", findings[0].message)
 
     def test_verify_does_not_block_when_verification_md_edited_after_task(self) -> None:
         root = REPO_ROOT / ".tmp-tests" / f"verify-expects-edit-{uuid.uuid4().hex}"
@@ -915,7 +908,7 @@ class SddToolingTests(unittest.TestCase):
             self.assertEqual(sdd.init_project(root), [])
             self.assertEqual(sdd.create_change(root, change_id, "standard", "Guard login"), [])
 
-        change_dir = root / ".proofkit" / "changes" / change_id
+        change_dir = root / ".runproof" / "changes" / change_id
         for filename in ["proposal.md", "delta-spec.md", "design.md", "archive.md"]:
             path = change_dir / filename
             path.write_text(path.read_text(encoding="utf-8").replace("status: draft", "status: ready"), encoding="utf-8")
@@ -952,7 +945,7 @@ class SddToolingTests(unittest.TestCase):
             self.assertEqual(sdd.init_project(root), [])
             self.assertEqual(sdd.create_change(root, change_id, "standard", "Guard login"), [])
 
-        change_dir = root / ".proofkit" / "changes" / change_id
+        change_dir = root / ".runproof" / "changes" / change_id
         for filename in ["proposal.md", "delta-spec.md", "design.md", "archive.md"]:
             path = change_dir / filename
             path.write_text(path.read_text(encoding="utf-8").replace("status: draft", "status: ready"), encoding="utf-8")
@@ -1021,7 +1014,7 @@ class SddToolingTests(unittest.TestCase):
         # no phase recorded — no commands allowed
         self.assertEqual(engine.allowed_commands(change_id), [])
 
-        change_dir = root / ".proofkit" / "changes" / change_id
+        change_dir = root / ".runproof" / "changes" / change_id
         for filename in ["proposal.md", "delta-spec.md", "design.md", "archive.md"]:
             path = change_dir / filename
             path.write_text(path.read_text(encoding="utf-8").replace("status: draft", "status: ready"), encoding="utf-8")
@@ -1040,8 +1033,8 @@ class SddToolingTests(unittest.TestCase):
         self.assertNotIn("sync-specs", allowed)
 
     def test_workflow_engine_is_exported(self) -> None:
-        self.assertIs(proofkit.WorkflowEngine, sdd.WorkflowEngine)
-        self.assertIs(proofkit.COMMAND_GATES, sdd.COMMAND_GATES)
+        self.assertIs(runproof.WorkflowEngine, sdd.WorkflowEngine)
+        self.assertIs(runproof.COMMAND_GATES, sdd.COMMAND_GATES)
 
     # --- validate_verification_matrix ---
 
@@ -1053,7 +1046,7 @@ class SddToolingTests(unittest.TestCase):
             self.assertEqual(sdd.init_project(root), [])
             self.assertEqual(sdd.create_change(root, change_id, "standard", "Guard login"), [])
 
-        verification_path = root / ".proofkit" / "changes" / change_id / "verification.md"
+        verification_path = root / ".runproof" / "changes" / change_id / "verification.md"
         # Replace placeholder text but leave status as a non-passing value
         text = verification_path.read_text(encoding="utf-8")
         text = text.replace("pending verification evidence", "unit test evidence")
@@ -1073,7 +1066,7 @@ class SddToolingTests(unittest.TestCase):
             self.assertEqual(sdd.init_project(root), [])
             self.assertEqual(sdd.create_change(root, change_id, "standard", "Guard login"), [])
 
-        verification_path = root / ".proofkit" / "changes" / change_id / "verification.md"
+        verification_path = root / ".runproof" / "changes" / change_id / "verification.md"
         text = verification_path.read_text(encoding="utf-8")
         text = text.replace("pending verification evidence", "unit test evidence")
         text = text.replace("not-run", "pass")
@@ -1084,7 +1077,7 @@ class SddToolingTests(unittest.TestCase):
         self.assertEqual(findings, [])
 
     def test_validate_verification_matrix_is_exported(self) -> None:
-        self.assertIs(proofkit.validate_verification_matrix, sdd.validate_verification_matrix)
+        self.assertIs(runproof.validate_verification_matrix, sdd.validate_verification_matrix)
 
     def test_check_change_blocks_when_matrix_has_no_passing_row(self) -> None:
         root = REPO_ROOT / ".tmp-tests" / f"check-matrix-{uuid.uuid4().hex}"
@@ -1094,7 +1087,7 @@ class SddToolingTests(unittest.TestCase):
             self.assertEqual(sdd.init_project(root), [])
             self.assertEqual(sdd.create_change(root, change_id, "standard", "Guard login"), [])
 
-        change_dir = root / ".proofkit" / "changes" / change_id
+        change_dir = root / ".runproof" / "changes" / change_id
         for filename in ["proposal.md", "delta-spec.md", "design.md", "tasks.md", "archive.md"]:
             path = change_dir / filename
             path.write_text(path.read_text(encoding="utf-8").replace("status: draft", "status: ready"), encoding="utf-8")
@@ -1127,7 +1120,7 @@ class SddToolingTests(unittest.TestCase):
             self.assertEqual(sdd.run_workflow(root, change_id, "standard", "Guard login", create=True).phase, sdd.WorkflowPhase.PROPOSE)
 
         # Advance artifacts to "tasks ready" level so artifact inference would return VERIFY
-        change_dir = root / ".proofkit" / "changes" / change_id
+        change_dir = root / ".runproof" / "changes" / change_id
         for filename in ["proposal.md", "delta-spec.md", "design.md", "tasks.md"]:
             path = change_dir / filename
             path.write_text(path.read_text(encoding="utf-8").replace("status: draft", "status: ready"), encoding="utf-8")
@@ -1151,7 +1144,7 @@ class SddToolingTests(unittest.TestCase):
             self.assertEqual(sdd.run_workflow(root, change_id, "standard", "Guard login", create=True).phase, sdd.WorkflowPhase.PROPOSE)
 
         # Artifact level: only proposal.md ready — inference should return SPECIFY
-        change_dir = root / ".proofkit" / "changes" / change_id
+        change_dir = root / ".runproof" / "changes" / change_id
         proposal_path = change_dir / "proposal.md"
         proposal_path.write_text(proposal_path.read_text(encoding="utf-8").replace("status: draft", "status: ready"), encoding="utf-8")
 
@@ -1162,7 +1155,7 @@ class SddToolingTests(unittest.TestCase):
         self.assertEqual(sdd.workflow_state(root, change_id).phase, sdd.WorkflowPhase.PROPOSE)
 
     def test_infer_phase_from_artifacts_is_exported(self) -> None:
-        self.assertIs(proofkit.infer_phase_from_artifacts, sdd.infer_phase_from_artifacts)
+        self.assertIs(runproof.infer_phase_from_artifacts, sdd.infer_phase_from_artifacts)
 
     def test_transition_blocks_when_artifacts_behind_target_despite_declared_phase(self) -> None:
         """Even when state.json declares a phase that allows the requested transition,
@@ -1176,7 +1169,7 @@ class SddToolingTests(unittest.TestCase):
 
         # Record SPECIFY in state.json without the artifacts being ready
         # (do it by manually recording the transition after making proposal "ready")
-        proposal_path = root / ".proofkit" / "changes" / change_id / "proposal.md"
+        proposal_path = root / ".runproof" / "changes" / change_id / "proposal.md"
         proposal_path.write_text(proposal_path.read_text(encoding="utf-8").replace("status: draft", "status: ready"), encoding="utf-8")
         self.record_transition(root, change_id, sdd.WorkflowPhase.SPECIFY)
 
@@ -1195,7 +1188,7 @@ class SddToolingTests(unittest.TestCase):
         with contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(sdd.init_project(root), [])
             self.assertEqual(sdd.create_change(root, change_id, "quick", "Test change"), [])
-        return root / ".proofkit" / "changes" / change_id
+        return root / ".runproof" / "changes" / change_id
 
     def _fill_proposal(self, change_dir: Path) -> None:
         p = change_dir / "proposal.md"
@@ -1289,7 +1282,7 @@ class SddToolingTests(unittest.TestCase):
 
         self.assertTrue(result.step.is_complete)
         self.assertGreater(steps, 0)
-        archive_root = root / ".proofkit" / "archive"
+        archive_root = root / ".runproof" / "archive"
         archived = [p for p in archive_root.iterdir() if p.is_dir()]
         self.assertEqual(len(archived), 1)
 
@@ -1447,7 +1440,7 @@ class SddToolingTests(unittest.TestCase):
     def test_require_command_flag_blocks_verify_when_no_commands_given(self) -> None:
         """When CI policy sets require_command=True, passing zero commands must block.
 
-        This is the enforcement path of `proofkit verify --require-command`:
+        This is the enforcement path of `runproof verify --require-command`:
         an agent cannot skip execution evidence simply by omitting --command.
         """
         root = REPO_ROOT / ".tmp-tests" / f"lie-nocommand-{uuid.uuid4().hex}"
@@ -1608,7 +1601,7 @@ class SddToolingTests(unittest.TestCase):
         # ── 2. Create standard-profile change ─────────────────────────────
         with contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(sdd.create_change(root, change_id, "standard", "Harden login"), [])
-        change_dir = root / ".proofkit" / "changes" / change_id
+        change_dir = root / ".runproof" / "changes" / change_id
         self.assertTrue(change_dir.is_dir())
 
         # ── 3. Agent fills proposal → auto-loop advances ─────────────────
@@ -1719,9 +1712,9 @@ class SddToolingTests(unittest.TestCase):
         # Change directory is gone.
         self.assertFalse(change_dir.exists())
         # Living spec was synced.
-        self.assertTrue((root / ".proofkit" / "specs" / change_id / "spec.md").is_file())
+        self.assertTrue((root / ".runproof" / "specs" / change_id / "spec.md").is_file())
         # Archive exists.
-        archives = [p for p in (root / ".proofkit" / "archive").iterdir() if p.is_dir()]
+        archives = [p for p in (root / ".runproof" / "archive").iterdir() if p.is_dir()]
         self.assertEqual(len(archives), 1)
         self.assertIn(change_id, archives[0].name)
 
@@ -1749,7 +1742,7 @@ class SddToolingTests(unittest.TestCase):
         with contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(sdd.init_project(root), [])
             self.assertEqual(sdd.create_change(root, change_id, "standard", "Harden login"), [])
-        change_dir = root / ".proofkit" / "changes" / change_id
+        change_dir = root / ".runproof" / "changes" / change_id
 
         # Fill all human-work artifacts.
         for name in ["proposal.md", "delta-spec.md", "design.md"]:
@@ -1790,12 +1783,12 @@ class SddToolingTests(unittest.TestCase):
         guard_findings = sdd.guard_repository(root, require_execution_evidence=True)
         # Change is still active at TASK, not archived.
         self.assertTrue(change_dir.exists())
-        archive_root = root / ".proofkit" / "archive"
+        archive_root = root / ".runproof" / "archive"
         archived_dirs = [p for p in archive_root.iterdir() if p.is_dir()] if archive_root.exists() else []
         self.assertEqual(archived_dirs, [])
 
         # ── 5. No spec sync ──────────────────────────────────────────────
-        self.assertFalse((root / ".proofkit" / "specs" / change_id).exists())
+        self.assertFalse((root / ".runproof" / "specs" / change_id).exists())
 
         # ── 6. Agent retries with PASSING command → verify succeeds ──────
         pass_cmd = f'"{sys.executable}" -c "print(\'retry-ok\')"'
@@ -1828,7 +1821,7 @@ class SddToolingTests(unittest.TestCase):
         )
         self.assertEqual(guard_findings, [], f"guard failed: {guard_findings}")
         self.assertFalse(change_dir.exists())
-        archives = [p for p in (root / ".proofkit" / "archive").iterdir() if p.is_dir()]
+        archives = [p for p in (root / ".runproof" / "archive").iterdir() if p.is_dir()]
         self.assertEqual(len(archives), 1)
 
 
@@ -1851,7 +1844,7 @@ class SddToolingTests(unittest.TestCase):
             sdd.init_project(root)
             findings = sdd.install_commands(root, "generic", "user", _home=tmp_home)
         self.assertEqual(findings, [])
-        commands_dir = tmp_home / ".proofkit" / "commands"
+        commands_dir = tmp_home / ".runproof" / "commands"
         for name in _COMMAND_FILE_NAMES:
             self.assertTrue((commands_dir / name).is_file(), f"missing {name}")
 
@@ -1901,7 +1894,7 @@ class SddToolingTests(unittest.TestCase):
             sdd.init_project(root)
             sdd.install_commands(root, "generic", "repo")
         # Overwrite one file with a custom local scaffold.
-        custom_file = root / ".proofkit" / "commands" / "sdd-propose.md"
+        custom_file = root / ".runproof" / "commands" / "sdd-propose.md"
         custom_file.write_text("# my custom scaffold", encoding="utf-8")
         with contextlib.redirect_stdout(io.StringIO()):
             findings = sdd.install_commands(root, "generic", "repo")
@@ -1954,7 +1947,7 @@ class SddToolingTests(unittest.TestCase):
         with contextlib.redirect_stdout(io.StringIO()):
             findings = sdd.install_extension(root, src)
         self.assertEqual(findings, [])
-        ext_dir = root / ".proofkit" / "extensions" / "my-ext"
+        ext_dir = root / ".runproof" / "extensions" / "my-ext"
         self.assertTrue(ext_dir.is_dir())
         self.assertTrue((ext_dir / "manifest.json").is_file())
 
@@ -1978,7 +1971,7 @@ class SddToolingTests(unittest.TestCase):
         src = self._make_extension_source(root, "my-ext")
         with contextlib.redirect_stdout(io.StringIO()):
             sdd.install_extension(root, src)
-        ext_dir = root / ".proofkit" / "extensions" / "my-ext"
+        ext_dir = root / ".runproof" / "extensions" / "my-ext"
         self.assertTrue(ext_dir.is_dir())
         with contextlib.redirect_stdout(io.StringIO()):
             findings = sdd.remove_extension(root, "my-ext")
@@ -1996,14 +1989,14 @@ class SddToolingTests(unittest.TestCase):
         (src / "manifest.json").write_text(json.dumps(manifst), encoding="utf-8")
         (src / "hooks.py").write_text(
             "def on_verify(root, change_id, findings):\n"
-            "    from proofkit._types import Finding\n"
+            "    from runproof._types import Finding\n"
             "    return findings + [Finding('error', None, 'hook-injected-error')]\n",
             encoding="utf-8",
         )
         with contextlib.redirect_stdout(io.StringIO()):
             sdd.install_extension(root, src)
         # Mark TRUSTED.
-        (root / ".proofkit" / "extensions" / "hook-ext" / "TRUSTED").write_text("", encoding="utf-8")
+        (root / ".runproof" / "extensions" / "hook-ext" / "TRUSTED").write_text("", encoding="utf-8")
         findings = sdd.run_extension_hooks(root, "on_verify", change_id="any", findings=[])
         self.assertEqual(len(findings), 1)
         self.assertEqual(findings[0].message, "hook-injected-error")
@@ -2018,7 +2011,7 @@ class SddToolingTests(unittest.TestCase):
         (src / "manifest.json").write_text(json.dumps(manifst), encoding="utf-8")
         (src / "hooks.py").write_text(
             "def on_verify(root, change_id, findings):\n"
-            "    from proofkit._types import Finding\n"
+            "    from runproof._types import Finding\n"
             "    return findings + [Finding('error', None, 'should-not-appear')]\n",
             encoding="utf-8",
         )
@@ -2055,7 +2048,7 @@ class SddToolingTests(unittest.TestCase):
         root = REPO_ROOT / ".tmp-tests" / f"mem-init-{uuid.uuid4().hex}"
         with contextlib.redirect_stdout(io.StringIO()):
             sdd.init_project(root)
-        memory_dir = root / ".proofkit" / "memory"
+        memory_dir = root / ".runproof" / "memory"
         self.assertTrue(memory_dir.is_dir())
         self.assertTrue((memory_dir / "project.md").is_file())
         self.assertTrue((memory_dir / "decisions.md").is_file())
@@ -2155,7 +2148,7 @@ class SddToolingTests(unittest.TestCase):
         with contextlib.redirect_stdout(io.StringIO()):
             change_id, findings = sdd.bootstrap_change(root, "Add brownfield support")
         self.assertEqual(findings, [])
-        self.assertTrue((root / ".proofkit" / "changes" / change_id).is_dir())
+        self.assertTrue((root / ".runproof" / "changes" / change_id).is_dir())
 
     def test_bootstrap_change_requires_initialized_root(self) -> None:
         root = REPO_ROOT / ".tmp-tests" / f"boot-uninit-{uuid.uuid4().hex}"
@@ -2194,9 +2187,9 @@ class SddToolingTests(unittest.TestCase):
             change_id, findings = sdd.bootstrap_change(root, "hotfix: crash on startup", profile="auto")
         self.assertEqual(findings, [])
         # change dir should exist
-        self.assertTrue((root / ".proofkit" / "changes" / change_id).is_dir())
+        self.assertTrue((root / ".runproof" / "changes" / change_id).is_dir())
         # quick profile has proposal.md, tasks.md, verification.md
-        artifacts = list((root / ".proofkit" / "changes" / change_id).iterdir())
+        artifacts = list((root / ".runproof" / "changes" / change_id).iterdir())
         self.assertGreater(len(artifacts), 0)
 
     # ── v0.21.0: Multi-agent Runner ───────────────────────────────────────
