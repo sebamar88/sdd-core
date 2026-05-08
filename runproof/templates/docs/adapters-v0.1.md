@@ -31,7 +31,7 @@ Every shipped adapter preserves these rules:
 - Runtime state must stay outside the core protocol artifacts.
 - Paths are repository-relative at the protocol boundary.
 - Verification evidence must be written back to ProofKit artifacts.
-- Archive remains blocked until `proofkit check <change-id>` passes.
+- Archive remains blocked until `runproof check <change-id>` passes.
 - Unsupported runtime features must be reported instead of silently assumed.
 
 ## Mapping Model
@@ -41,7 +41,7 @@ Adapters map portable ProofKit contracts to runtime behavior:
 - `.sdd/agents/*.md` become runtime roles, prompts, subagents, or phase responsibilities.
 - `.sdd/skills/*.md` become task instructions, slash commands, workflow stages, or prompt prefixes.
 - `.sdd/profiles/*.md` control the artifact set and rigor level.
-- `proofkit validate`, `proofkit status`, and `proofkit check` remain the common lifecycle gates.
+- `runproof validate`, `runproof status`, and `runproof check` remain the common lifecycle gates.
 
 ## Implementation Status
 

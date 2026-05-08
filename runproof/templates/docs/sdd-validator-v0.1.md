@@ -26,61 +26,61 @@ python -m pip install -e .
 Show the installed CLI version:
 
 ```text
-proofkit version
+runproof version
 ```
 
 Validate the current repository:
 
 ```text
-proofkit validate
+runproof validate
 ```
 
 Initialize ProofKit in a repository:
 
 ```text
-proofkit init --root path-to-repository
+runproof init --root path-to-repository
 ```
 
 Validate another repository root:
 
 ```text
-proofkit validate --root path-to-repository
+runproof validate --root path-to-repository
 ```
 
 Show current SDD status:
 
 ```text
-proofkit status
+runproof status
 ```
 
 Check whether a change is ready to archive:
 
 ```text
-proofkit check add-search
+runproof check add-search
 ```
 
 Archive a verified change:
 
 ```text
-proofkit archive add-search
+runproof archive add-search
 ```
 
 Sync a verified delta spec into living specs:
 
 ```text
-proofkit sync-specs add-search
+runproof sync-specs add-search
 ```
 
 Create a standard change:
 
 ```text
-proofkit new add-search --profile standard --title "Add search"
+runproof new add-search --profile standard --title "Add search"
 ```
 
 Create a change in another repository root:
 
 ```text
-proofkit new fix-login --profile bugfix --root path-to-repository
+runproof new fix-login --profile bugfix --root path-to-repository
 ```
 
 ## Checks
