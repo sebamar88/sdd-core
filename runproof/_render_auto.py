@@ -44,13 +44,13 @@ def run_fast_demo() -> int:
     def line(msg: str) -> None:
         print(msg)
 
-    with tempfile.TemporaryDirectory(prefix="sdd-fast-") as tmpdir:
+    with tempfile.TemporaryDirectory(prefix="runproof-fast-") as tmpdir:
         root = Path(tmpdir)
 
-        print(_bold("ProofKit — Proof: agent can't lie about being done"))
+        print(_bold("RunProof — Proof: agent can't lie about being done"))
         print(_dim("=" * 54))
         print("")
-        print("Scenario: an AI agent finishes coding and calls 'proofkit archive'.")
+        print("Scenario: an AI agent finishes coding and calls 'runproof archive'.")
         print("Watch what happens at each attempt.")
         print("")
 
@@ -59,7 +59,7 @@ def run_fast_demo() -> int:
         create_change(root, change_id, profile, "Agent claims to be done")
 
         # Attempt 1: archive before doing any work
-        line(_bold("\nAttempt 1") + "  Agent calls: " + _cyan(f"proofkit archive {change_id}"))
+        line(_bold("\nAttempt 1") + "  Agent calls: " + _cyan(f"runproof archive {change_id}"))
         findings = archive_change(root, change_id)
         if not findings:
             print(_red("UNEXPECTED: archive should have been blocked"))
@@ -83,7 +83,7 @@ def run_fast_demo() -> int:
         transition_workflow(root, change_id, WorkflowPhase.PROPOSE)
         transition_workflow(root, change_id, WorkflowPhase.TASK)
 
-        line(_bold("\nAttempt 2") + "  Agent marks tasks done, calls: " + _cyan(f"proofkit archive {change_id}"))
+        line(_bold("\nAttempt 2") + "  Agent marks tasks done, calls: " + _cyan(f"runproof archive {change_id}"))
         findings = archive_change(root, change_id)
         if not findings:
             print(_red("UNEXPECTED: archive should have been blocked"))
@@ -91,7 +91,7 @@ def run_fast_demo() -> int:
         print(_red("  \u2717 BLOCKED:") + " " + findings[0].message)
 
         # Attempt 3: verify with real command
-        line(_bold("\nAttempt 3") + "  Agent provides evidence: " + _cyan(f"proofkit verify {change_id} --command 'echo auth-tests-pass'"))
+        line(_bold("\nAttempt 3") + "  Agent provides evidence: " + _cyan(f"runproof verify {change_id} --command 'echo auth-tests-pass'"))
         v_findings = verify_change(root, change_id, ["echo auth-tests-pass"])
         if v_findings:
             for f in v_findings:
@@ -100,7 +100,7 @@ def run_fast_demo() -> int:
         print(_green("  \u2714 Evidence recorded") + " — command output checksummed and stored")
 
         # Now advance and archive via auto --loop
-        line(_bold("\nAttempt 4") + "  Engine closes it: " + _cyan(f"proofkit auto {change_id} --loop"))
+        line(_bold("\nAttempt 4") + "  Engine closes it: " + _cyan(f"runproof auto {change_id} --loop"))
         rc = print_auto(root, change_id, loop=True)
         if rc != 0:
             return 1
@@ -116,7 +116,7 @@ def run_fast_demo() -> int:
         print(f"  evidence quality  : verification.md could not contain placeholders")
         print(f"  execution proof   : output log + sha256 stored before phase recorded")
         print("")
-        print(f"  {_cyan('proofkit evidence ' + change_id)}  \u2190 inspect what was recorded")
+        print(f"  {_cyan('runproof evidence ' + change_id)}  \u2190 inspect what was recorded")
     return 0
 
 
@@ -142,26 +142,26 @@ def run_demo() -> int:
     with tempfile.TemporaryDirectory(prefix="sdd-demo-") as tmpdir:
         root = Path(tmpdir)
 
-        print(_bold("ProofKit — AI Development Governance Engine"))
+        print(_bold("RunProof — AI Development Governance Engine"))
         print(_dim("=" * 52))
         print("Problem: AI agents produce code but lose intent, skip verification,")
         print("         and claim completion without evidence.")
         print("Solution: a governance layer that enforces the protocol automatically.")
         print(f"\n{_dim('Temp root:')} {_dim(str(root))}")
 
-        section("proofkit init  (one-time repository setup)")
+        section("runproof init  (one-time repository setup)")
         findings = init_project(root)
         if findings:
             return fail("init failed", findings, root)
         ok(f"Initialized {SDD_DIR}/ — adapters, agents, profiles, schemas, skills, specs")
 
-        section(f"proofkit new {change_id} --profile quick --title '{title}'")
+        section(f"runproof new {change_id} --profile quick --title '{title}'")
         findings = create_change(root, change_id, profile, title)
         if findings:
             return fail("create_change failed", findings, root)
         ok(f"Created {SDD_DIR}/changes/{change_id}/ — proposal.md, tasks.md, verification.md")
 
-        section(f"proofkit auto {change_id} --loop  (engine runs; pauses for human input)")
+        section(f"runproof auto {change_id} --loop  (engine runs; pauses for human input)")
         result = _auto_advance(root, change_id)
         print(f"   \u2192 phase: {result.step.phase.value}")
         if result.needs_human_work:
@@ -183,7 +183,7 @@ def run_demo() -> int:
         proposal_path.write_text(text, encoding="utf-8")
         ok("proposal.md: intent recorded, status \u2192 ready")
 
-        section(f"proofkit auto {change_id} --loop  (engine resumes after human edit)")
+        section(f"runproof auto {change_id} --loop  (engine resumes after human edit)")
         loop_steps = 0
         while True:
             r = _auto_advance(root, change_id)
@@ -211,7 +211,7 @@ def run_demo() -> int:
         tasks_path.write_text(text, encoding="utf-8")
         ok("tasks.md: T-001 closed, status \u2192 ready")
 
-        section(f"proofkit auto {change_id} --loop  (advances to verify, cannot skip it)")
+        section(f"runproof auto {change_id} --loop  (advances to verify, cannot skip it)")
         loop_steps = 0
         while True:
             r = _auto_advance(root, change_id)
@@ -223,9 +223,9 @@ def run_demo() -> int:
         print(f"   \u2192 phase: {r.step.phase.value} ({loop_steps} step(s) executed)")
         if r.step.phase == WorkflowPhase.VERIFY:
             print("   \u2192 Engine paused. Verification requires a real command.")
-            print(f"     Run: proofkit verify {change_id} --command '<your-test-command>'")
+            print(f"     Run: runproof verify {change_id} --command '<your-test-command>'")
 
-        section(f"proofkit verify {change_id} --command 'echo tests-pass'")
+        section(f"runproof verify {change_id} --command 'echo tests-pass'")
         print(f"   {_dim('(captures stdout/stderr, SHA-256 checksums output log, records timing)')}")
         findings = verify_change(root, change_id, ["echo tests-pass"])
         if findings:
@@ -234,7 +234,7 @@ def run_demo() -> int:
         ok("verification.md updated automatically \u2192 status: verified")
         ok(f"Phase recorded in {SDD_DIR}/state.json \u2192 verify")
 
-        section(f"proofkit auto {change_id} --loop  (engine closes the change)")
+        section(f"runproof auto {change_id} --loop  (engine closes the change)")
         loop_steps = 0
         while True:
             r = _auto_advance(root, change_id)
@@ -249,7 +249,7 @@ def run_demo() -> int:
         else:
             return fail("expected archived", r.step.blocking_findings, root)
 
-        section("proofkit validate  (full repository integrity check)")
+        section("runproof validate  (full repository integrity check)")
         val_findings = [f for f in validate(root) if f.severity == "error"]
         if val_findings:
             return fail("validate failed", val_findings, root)
@@ -266,9 +266,9 @@ def run_demo() -> int:
     print(f"  {_red(chr(0x2192))} Ungoverned commits — guard + install-hooks can enforce this in CI")
     print()
     print(_bold("Next:"))
-    print(f"  {_cyan('proofkit init --root <your-repo>')}")
-    print(f"  {_cyan('proofkit auto <change-id> --loop')}")
-    print(f"  {_cyan('proofkit ci-template --root <your-repo>')}")
+    print(f"  {_cyan('runproof init --root <your-repo>')}")
+    print(f"  {_cyan('runproof auto <change-id> --loop')}")
+    print(f"  {_cyan('runproof ci-template --root <your-repo>')}")
     return 0
 
 
@@ -299,10 +299,10 @@ def _print_auto_step(root: Path, change_id: str, result: "AutoStep") -> int:
     if step.phase == WorkflowPhase.VERIFY:
         print(_yellow(icon) + " " + _bold(f"phase: {step.phase.value}") + " " + _yellow("[needs command]"))
         print(f"  {step.next_action}")
-        print(f"  " + _cyan(f"Run: proofkit verify {change_id} --command '<your-test-command>'"))
+        print(f"  " + _cyan(f"Run: runproof verify {change_id} --command '<your-test-command>'"))
         discovered = discover_test_command(root)
         if discovered:
-            print(f"  " + _green(f"Discovered runner: proofkit verify {change_id} --command '{discovered}'"))
+            print(f"  " + _green(f"Discovered runner: runproof verify {change_id} --command '{discovered}'"))
         return 0
 
     artifact_file = _PHASE_ARTIFACT_FILE.get(step.phase)
@@ -312,7 +312,7 @@ def _print_auto_step(root: Path, change_id: str, result: "AutoStep") -> int:
         print(_yellow(icon) + " " + _bold(f"phase: {step.phase.value}") + " " + _yellow("[needs edit]"))
         print(f"  {step.next_action}")
         print(f"  " + _cyan(f"Edit: {artifact_path}"))
-        print(f"  Re-run " + _dim(f"proofkit auto {change_id}") + " when done.")
+        print(f"  Re-run " + _dim(f"runproof auto {change_id}") + " when done.")
         return 0
 
     print(_cyan(icon) + " " + _bold(f"phase: {step.phase.value}"))
@@ -333,7 +333,7 @@ def print_auto(
     if not loop:
         return _print_auto_step(root, change_id, _auto_advance(root, change_id))
 
-    print(_bold(f"ProofKit auto loop: {change_id}"))
+    print(_bold(f"RunProof auto loop: {change_id}"))
     print(_dim("-" * 44))
     steps_taken = 0
     result = _auto_advance(root, change_id)  # ensure defined

@@ -77,7 +77,7 @@ def print_extension_list(root: Path) -> int:
     exts = load_extensions(root)
     if not exts:
         print(_dim("No extensions installed."))
-        print(_dim("  Install one: proofkit extension install <path>"))
+        print(_dim("  Install one: runproof extension install <path>"))
         return 0
     print(_bold(f"Installed extensions ({len(exts)}):"))
     for ext in exts:
@@ -95,7 +95,7 @@ def print_memory(root: Path, key: str | None = None) -> int:
     for k in keys:
         content = read_memory_entry(root, k)
         if content is None:
-            print(_yellow(f"Memory file '{k}.md' not found — run `proofkit init` first."))
+            print(_yellow(f"Memory file '{k}.md' not found — run `runproof init` first."))
             return 1
         print(_bold(f"── memory/{k}.md ──"))
         print(content)
@@ -116,10 +116,10 @@ def print_guard(
         require_execution_evidence=require_execution_evidence,
     )
     if not findings:
-        print(_green("\u2714") + " " + _bold("SDD guard passed."))
+        print(_green("\u2714") + " " + _bold("RunProof guard passed."))
         return 0
 
-    print(_red("\u2717") + " " + _bold("SDD guard blocked."))
+    print(_red("\u2717") + " " + _bold("RunProof guard blocked."))
     for finding in findings:
         pre = _red("  \u2717") if finding.severity == "error" else _yellow("  \u26a0")
         print(pre + " " + finding.format(root))
@@ -145,7 +145,7 @@ def print_log(root: Path, change_id: str) -> int:
         print(f"No recorded history entries for: {change_id}")
         return 1
 
-    print(_bold(f"SDD log: {change_id}"))
+    print(_bold(f"RunProof log: {change_id}"))
     print(f"  profile : {entry.get('profile', 'unknown')}")
     print(f"  phase   : {_cyan(str(entry.get('phase', 'unknown')))}")
     print("")
@@ -169,7 +169,7 @@ def print_phase(root: Path, change_id: str) -> int:
     artifact_phase = infer_phase_from_artifacts(root, change_id)
     state = workflow_state(root, change_id)
 
-    print(_bold(f"SDD phase: {change_id}"))
+    print(_bold(f"RunProof phase: {change_id}"))
     print(f"  declared  : {_cyan(declared.value) if declared else _dim('not-recorded')}")
     print(f"  artifacts : {_cyan(artifact_phase.value)}")
     eff_icon = _PHASE_ICON.get(state.phase.value, " ")
@@ -195,7 +195,7 @@ def print_workflow(root: Path, state: WorkflowState) -> int:
     from ._wf_registry import _PHASE_ARTIFACT_FILE
     icon = _PHASE_ICON.get(state.phase.value, " ")
     phase_str = _red(icon + " " + state.phase.value) if state.is_blocked else _cyan(icon + " " + state.phase.value)
-    print(_bold("SDD workflow"))
+    print(_bold("RunProof workflow"))
     print(f"  root    : {_dim(str(root))}")
     print(f"  change  : {state.change_id}")
     print(f"  profile : {state.profile}")
@@ -203,14 +203,14 @@ def print_workflow(root: Path, state: WorkflowState) -> int:
 
     artifact_filename = _PHASE_ARTIFACT_FILE.get(state.phase)
     if artifact_filename and not state.is_blocked:
-        artifact_path = root / ".proofkit" / "changes" / state.change_id / artifact_filename
+        artifact_path = root / ".runproof" / "changes" / state.change_id / artifact_filename
         try:
             rel = artifact_path.relative_to(root).as_posix()
         except ValueError:
             rel = str(artifact_path)
         print(f"  file    : {_dim(rel)}")
         print(f"  next    : {state.next_action}")
-        print(f"  hint    : {_cyan(f'proofkit ready {state.change_id}')}  {_dim('(marks artifact as ready)')}")
+        print(f"  hint    : {_cyan(f'runproof ready {state.change_id}')}  {_dim('(marks artifact as ready)')}")
     else:
         print(f"  next    : {state.next_action}")
 
@@ -226,7 +226,7 @@ def print_workflow(root: Path, state: WorkflowState) -> int:
 
 def print_transition(root: Path, state: WorkflowState) -> int:
     if state.is_blocked:
-        print(_red("\u2717") + " " + _bold("SDD transition blocked."))
+        print(_red("\u2717") + " " + _bold("RunProof transition blocked."))
         for finding in state.findings:
             pre = _red("  \u2717") if finding.severity == "error" else _yellow("  \u26a0")
             print(pre + " " + finding.format(root))
@@ -237,11 +237,11 @@ def print_transition(root: Path, state: WorkflowState) -> int:
             for f in state.findings
         )
         if has_artifact_block:
-            print(_dim(f"  → Run: proofkit ready {state.change_id}"))
+            print(_dim(f"  → Run: runproof ready {state.change_id}"))
         return 1
 
     icon = _PHASE_ICON.get(state.phase.value, " ")
-    print(_green("\u2714") + " " + _bold("SDD transition recorded."))
+    print(_green("\u2714") + " " + _bold("RunProof transition recorded."))
     print(f"  change   : {state.change_id}")
     print(f"  phase    : {_cyan(icon + ' ' + state.phase.value)}")
     print(f"  registry : {workflow_registry_path(root).relative_to(root).as_posix()}")
@@ -254,7 +254,7 @@ def print_status(root: Path) -> int:
     warnings = [finding for finding in findings if finding.severity == "warning"]
 
     val_str = _red("fail") if errors else _green("pass")
-    print(_bold("SDD status"))
+    print(_bold("RunProof status"))
     print(f"  root            : {_dim(str(root))}")
     print(f"  validation      : {val_str}")
     print(f"  active changes  : {len(changes)}")
@@ -286,7 +286,7 @@ def print_status(root: Path) -> int:
 def print_findings(root: Path, findings: Iterable[Finding]) -> int:
     findings = list(findings)
     if not findings:
-        print(_green("\u2714") + " SDD validation passed.")
+        print(_green("\u2714") + " RunProof validation passed.")
         return 0
 
     for finding in findings:
@@ -350,7 +350,7 @@ def print_evidence(root: "Path", change_id: str) -> int:
     except ValueError:
         rel_registry = str(ev_path)
 
-    print(_bold(f"SDD evidence: {change_id}"))
+    print(_bold(f"RunProof evidence: {change_id}"))
     print(f"  registry : {_dim(rel_registry)}")
 
     if ev_findings:
@@ -427,7 +427,7 @@ def print_pr_check(root: "Path", change_id: str) -> int:
         else _cyan(icon + " " + state.phase.value)
     )
 
-    print(_bold(f"SDD governance report: {change_id}"))
+    print(_bold(f"RunProof governance report: {change_id}"))
     print("")
 
     completed_phases = [
@@ -436,7 +436,7 @@ def print_pr_check(root: "Path", change_id: str) -> int:
     ]
     md_lines = [
         "```",
-        "## SDD Governance Report",
+        "## RunProof Governance Report",
         "",
         f"**Change:** `{change_id}`  **Profile:** {state.profile}  **Phase:** {state.phase.value}",
         f"**Pipeline:** {' -> '.join(completed_phases)}",
@@ -465,8 +465,8 @@ def print_pr_check(root: "Path", change_id: str) -> int:
         md_lines += ["*No execution evidence recorded.*", ""]
 
     md_lines += [
-        f"> Generated by ProofKit v{VERSION}",
-        "> Artifact checksum in `.proofkit/state.json`",
+        f"> Generated by RunProof v{VERSION}",
+        "> Artifact checksum in `.runproof/state.json`",
         "```",
     ]
 
@@ -486,7 +486,7 @@ def print_pr_check(root: "Path", change_id: str) -> int:
         print("  " + _yellow(f"{chr(0x26a0)}  change is not yet verified - do not merge"))
         return 1
     if not records:
-        print("  " + _yellow(f"{chr(0x26a0)}  no execution evidence - run: proofkit verify --command or --discover"))
+        print("  " + _yellow(f"{chr(0x26a0)}  no execution evidence - run: runproof verify --command or --discover"))
         return 1
     if not all(r.get("passed") for r in records):
         print("  " + _red(f"{chr(0x2717)}  execution evidence contains failures - resolve before merging"))

@@ -37,7 +37,7 @@ class _HelpfulParser(argparse.ArgumentParser):
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = _HelpfulParser(description="ProofKit utility")
+    parser = _HelpfulParser(description="RunProof utility")
     parser.add_argument(
         "--trace",
         action="store_true",
@@ -48,8 +48,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     validate_parser = subcommands.add_parser(
         "validate",
-        help="validate ProofKit repository artifacts",
-        epilog="example:\n  proofkit validate\n  proofkit validate --root ./my-repo",
+        help="validate RunProof repository artifacts",
+        epilog="example:\n  runproof validate\n  runproof validate --root ./my-repo",
     )
     validate_parser.add_argument(
         "--root",
@@ -57,12 +57,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="repository root to validate; defaults to the current directory",
     )
 
-    subcommands.add_parser("version", help="show ProofKit version")
+    subcommands.add_parser("version", help="show RunProof version")
 
     demo_parser = subcommands.add_parser(
         "demo",
         help="run an annotated Golden Path walkthrough in a temporary directory",
-        epilog="example:\n  proofkit demo\n  proofkit demo --fast          # 30-second anti-hallucination proof",
+        epilog="example:\n  runproof demo\n  runproof demo --fast          # 30-second anti-hallucination proof",
     )
     demo_parser.add_argument(
         "--fast",
@@ -73,7 +73,7 @@ def build_parser() -> argparse.ArgumentParser:
     auto_parser = subcommands.add_parser(
         "auto",
         help="advance a change: execute all ready steps, stop on human-work phases",
-        epilog="example:\n  proofkit auto add-dark-mode\n  proofkit auto add-dark-mode --loop --verify-with 'pytest -x'",
+        epilog="example:\n  runproof auto add-dark-mode\n  runproof auto add-dark-mode --loop --verify-with 'pytest -x'",
     )
     auto_parser.add_argument("change_id", help="kebab-case change identifier")
     auto_parser.add_argument(
@@ -96,8 +96,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     init_parser = subcommands.add_parser(
         "init",
-        help="initialize ProofKit artifacts in a repository",
-        epilog="example:\n  proofkit init\n  proofkit init --integration github-copilot\n  proofkit init --no-prompt",
+        help="initialize RunProof artifacts in a repository",
+        epilog="example:\n  runproof init\n  runproof init --integration github-copilot\n  runproof init --no-prompt",
     )
     init_parser.add_argument(
         "--root",
@@ -123,8 +123,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     status_parser = subcommands.add_parser(
         "status",
-        help="show ProofKit repository status",
-        epilog="example:\n  proofkit status",
+        help="show RunProof repository status",
+        epilog="example:\n  runproof status",
     )
     status_parser.add_argument(
         "--root",
@@ -134,8 +134,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     check_parser = subcommands.add_parser(
         "check",
-        help="check whether a ProofKit change is ready to archive",
-        epilog="example:\n  proofkit check add-dark-mode",
+        help="check whether a RunProof change is ready to archive",
+        epilog="example:\n  runproof check add-dark-mode",
     )
     check_parser.add_argument("change_id", help="kebab-case change identifier")
     check_parser.add_argument(
@@ -146,8 +146,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     archive_parser = subcommands.add_parser(
         "archive",
-        help="archive a verified ProofKit change",
-        epilog="example:\n  proofkit archive add-dark-mode",
+        help="archive a verified RunProof change",
+        epilog="example:\n  runproof archive add-dark-mode",
     )
     archive_parser.add_argument("change_id", help="kebab-case change identifier")
     archive_parser.add_argument(
@@ -159,7 +159,7 @@ def build_parser() -> argparse.ArgumentParser:
     sync_parser = subcommands.add_parser(
         "sync-specs",
         help="sync a verified change delta into living specs",
-        epilog="example:\n  proofkit sync-specs add-dark-mode",
+        epilog="example:\n  runproof sync-specs add-dark-mode",
     )
     sync_parser.add_argument("change_id", help="kebab-case change identifier")
     sync_parser.add_argument(
@@ -170,13 +170,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     new_parser = subcommands.add_parser(
         "new",
-        help="create a new ProofKit change artifact set",
-        epilog="example:\n  proofkit new add-dark-mode --title 'Add dark mode toggle'\n  proofkit new fix-login-bug",
+        help="create a new RunProof change artifact set",
+        epilog="example:\n  runproof new add-dark-mode --title 'Add dark mode toggle'\n  runproof new fix-login-bug",
     )
     ready_parser = subcommands.add_parser(
         "ready",
         help="mark the current artifact as ready — the UX-friendly alternative to editing frontmatter manually",
-        epilog="example:\n  proofkit ready add-dark-mode",
+        epilog="example:\n  runproof ready add-dark-mode",
     )
     ready_parser.add_argument("change_id", help="kebab-case change identifier")
     ready_parser.add_argument(
@@ -203,8 +203,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     run_parser = subcommands.add_parser(
         "run",
-        help="run the ProofKit workflow gate for a change",
-        epilog="example:\n  proofkit run add-dark-mode\n  proofkit run add-dark-mode --no-create",
+        help="run the RunProof workflow gate for a change",
+        epilog="example:\n  runproof run add-dark-mode\n  runproof run add-dark-mode --no-create",
     )
     run_parser.add_argument("change_id", help="kebab-case change identifier")
     run_parser.add_argument(
@@ -233,10 +233,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="record an enforced workflow phase transition",
         epilog=(
             "example:\n"
-            "  proofkit transition add-dark-mode specify\n"
+            "  runproof transition add-dark-mode specify\n"
             "\nvalid phases: propose, specify, design, task, critique,\n"
             "  archive-record, sync-specs, archive\n"
-            "\nnote: use 'proofkit verify' to record the verify phase"
+            "\nnote: use 'runproof verify' to record the verify phase"
         ),
     )
     transition_parser.add_argument("change_id", help="kebab-case change identifier")
@@ -252,7 +252,7 @@ def build_parser() -> argparse.ArgumentParser:
             WorkflowPhase.SYNC_SPECS.value,
             WorkflowPhase.ARCHIVE.value,
         ],
-        help="target phase to record after artifacts prove readiness; use 'proofkit verify' to record the verify phase",
+        help="target phase to record after artifacts prove readiness; use 'runproof verify' to record the verify phase",
     )
     transition_parser.add_argument(
         "--root",
@@ -263,7 +263,7 @@ def build_parser() -> argparse.ArgumentParser:
     log_parser = subcommands.add_parser(
         "log",
         help="show the recorded command history for a change",
-        epilog="example:\n  proofkit log add-dark-mode",
+        epilog="example:\n  runproof log add-dark-mode",
     )
     log_parser.add_argument("change_id", help="kebab-case change identifier")
     log_parser.add_argument(
@@ -277,9 +277,9 @@ def build_parser() -> argparse.ArgumentParser:
         help="validate evidence quality and record the verify phase",
         epilog=(
             "example:\n"
-            "  proofkit verify add-dark-mode --discover\n"
-            "  proofkit verify add-dark-mode --command 'pytest -x'\n"
-            "  proofkit verify add-dark-mode --command 'npm test' --command 'eslint .'"
+            "  runproof verify add-dark-mode --discover\n"
+            "  runproof verify add-dark-mode --command 'pytest -x'\n"
+            "  runproof verify add-dark-mode --command 'npm test' --command 'eslint .'"
         ),
     )
     verify_parser.add_argument("change_id", help="kebab-case change identifier")
@@ -321,7 +321,7 @@ def build_parser() -> argparse.ArgumentParser:
     evidence_parser = subcommands.add_parser(
         "evidence",
         help="show execution evidence records for a change",
-        epilog="example:\n  proofkit evidence add-dark-mode",
+        epilog="example:\n  runproof evidence add-dark-mode",
     )
     evidence_parser.add_argument("change_id", help="kebab-case change identifier")
     evidence_parser.add_argument(
@@ -333,7 +333,7 @@ def build_parser() -> argparse.ArgumentParser:
     pr_check_parser = subcommands.add_parser(
         "pr-check",
         help="output a PR-ready governance report and exit 0 only if the change is safe to merge",
-        epilog="example:\n  proofkit pr-check add-dark-mode",
+        epilog="example:\n  runproof pr-check add-dark-mode",
     )
     pr_check_parser.add_argument("change_id", help="kebab-case change identifier")
     pr_check_parser.add_argument(
@@ -345,7 +345,7 @@ def build_parser() -> argparse.ArgumentParser:
     phase_parser = subcommands.add_parser(
         "phase",
         help="show declared and inferred workflow phase for a change",
-        epilog="example:\n  proofkit phase add-dark-mode",
+        epilog="example:\n  runproof phase add-dark-mode",
     )
     phase_parser.add_argument("change_id", help="kebab-case change identifier")
     phase_parser.add_argument(
@@ -356,23 +356,23 @@ def build_parser() -> argparse.ArgumentParser:
 
     guard_parser = subcommands.add_parser(
         "guard",
-        help="enforce ProofKit repository governance for hooks or CI",
-        epilog="example:\n  proofkit guard\n  proofkit guard --strict-state --require-execution-evidence",
+        help="enforce RunProof repository governance for hooks or CI",
+        epilog="example:\n  runproof guard\n  runproof guard --strict-state --require-execution-evidence",
     )
     guard_parser.add_argument(
         "--require-active-change",
         action="store_true",
-        help="fail when no active .proofkit change exists",
+        help="fail when no active .runproof change exists",
     )
     guard_parser.add_argument(
         "--strict-state",
         action="store_true",
-        help="fail when .proofkit/state.json is missing entries or artifact checksums are stale",
+        help="fail when .runproof/state.json is missing entries or artifact checksums are stale",
     )
     guard_parser.add_argument(
         "--require-execution-evidence",
         action="store_true",
-        help="fail verified or archived changes without passing .proofkit/evidence execution records",
+        help="fail verified or archived changes without passing .runproof/evidence execution records",
     )
     guard_parser.add_argument(
         "--root",
@@ -382,8 +382,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     hooks_parser = subcommands.add_parser(
         "install-hooks",
-        help="install ProofKit git enforcement hooks",
-        epilog="example:\n  proofkit install-hooks",
+        help="install RunProof git enforcement hooks",
+        epilog="example:\n  runproof install-hooks",
     )
     hooks_parser.add_argument(
         "--root",
@@ -393,15 +393,15 @@ def build_parser() -> argparse.ArgumentParser:
 
     ext_parser = subcommands.add_parser(
         "extension",
-        help="manage ProofKit extensions",
-        epilog="example:\n  proofkit extension install ./my-ext\n  proofkit extension list\n  proofkit extension remove my-ext",
+        help="manage RunProof extensions",
+        epilog="example:\n  runproof extension install ./my-ext\n  runproof extension list\n  runproof extension remove my-ext",
     )
     ext_sub = ext_parser.add_subparsers(dest="ext_action", required=True, parser_class=_HelpfulParser)
 
     ext_install = ext_sub.add_parser(
         "install",
         help="install an extension from a local directory",
-        epilog="example:\n  proofkit extension install ./my-extension",
+        epilog="example:\n  runproof extension install ./my-extension",
     )
     ext_install.add_argument("path", help="path to the extension source directory")
     ext_install.add_argument(
@@ -413,7 +413,7 @@ def build_parser() -> argparse.ArgumentParser:
     ext_list = ext_sub.add_parser(
         "list",
         help="list installed extensions",
-        epilog="example:\n  proofkit extension list",
+        epilog="example:\n  runproof extension list",
     )
     ext_list.add_argument(
         "--root",
@@ -424,7 +424,7 @@ def build_parser() -> argparse.ArgumentParser:
     ext_remove = ext_sub.add_parser(
         "remove",
         help="remove an installed extension",
-        epilog="example:\n  proofkit extension remove my-extension",
+        epilog="example:\n  runproof extension remove my-extension",
     )
     ext_remove.add_argument("name", help="extension name to remove")
     ext_remove.add_argument(
@@ -436,14 +436,14 @@ def build_parser() -> argparse.ArgumentParser:
     mem_parser = subcommands.add_parser(
         "memory",
         help="read or update the project memory",
-        epilog="example:\n  proofkit memory show\n  proofkit memory add --key project --text 'Node 20, TypeScript, pnpm'",
+        epilog="example:\n  runproof memory show\n  runproof memory add --key project --text 'Node 20, TypeScript, pnpm'",
     )
     mem_sub = mem_parser.add_subparsers(dest="mem_action", required=True, parser_class=_HelpfulParser)
 
     mem_show = mem_sub.add_parser(
         "show",
         help="print memory file(s)",
-        epilog="example:\n  proofkit memory show\n  proofkit memory show --key decisions",
+        epilog="example:\n  runproof memory show\n  runproof memory show --key decisions",
     )
     mem_show.add_argument(
         "--key",
@@ -456,7 +456,7 @@ def build_parser() -> argparse.ArgumentParser:
     mem_add = mem_sub.add_parser(
         "add",
         help="append content to a memory file",
-        epilog="example:\n  proofkit memory add --key project --text 'Node 20, TypeScript, pnpm'",
+        epilog="example:\n  runproof memory add --key project --text 'Node 20, TypeScript, pnpm'",
     )
     mem_add.add_argument(
         "--key",
@@ -469,8 +469,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     cmd_parser = subcommands.add_parser(
         "install-commands",
-        help="install ProofKit AI command scaffolds for a supported agent integration",
-        epilog="example:\n  proofkit install-commands --integration github-copilot\n  proofkit install-commands --integration cursor --scope user",
+        help="install RunProof AI command scaffolds for a supported agent integration",
+        epilog="example:\n  runproof install-commands --integration github-copilot\n  runproof install-commands --integration cursor --scope user",
     )
     cmd_parser.add_argument(
         "--integration",
@@ -499,8 +499,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     ci_parser = subcommands.add_parser(
         "ci-template",
-        help="write a CI workflow template that runs `proofkit guard` on every push",
-        epilog="example:\n  proofkit ci-template\n  proofkit ci-template --type github-actions",
+        help="write a CI workflow template that runs `runproof guard` on every push",
+        epilog="example:\n  runproof ci-template\n  runproof ci-template --type github-actions",
     )
     ci_parser.add_argument(
         "--type",
@@ -530,7 +530,7 @@ def main(argv: list[str] | None = None) -> int:
         return print_findings(root, validate(root))
 
     if args.command == "version":
-        print(f"ProofKit {VERSION}")
+        print(f"RunProof {VERSION}")
         return 0
 
     if args.command == "demo":
@@ -554,7 +554,7 @@ def main(argv: list[str] | None = None) -> int:
         if integration is None and not no_prompt:
             integrations = list_available_integrations()
             print()
-            print("Which AI agent will you use with ProofKit?")
+            print("Which AI agent will you use with RunProof?")
             for i, name in enumerate(integrations, 1):
                 print(f"  {i}) {name}")
             print(f"  {len(integrations) + 1}) skip")
