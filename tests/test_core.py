@@ -40,6 +40,8 @@ class TestCore(unittest.TestCase):
 
         self.assertEqual(pyproject["project"]["version"], sdd.VERSION)
         self.assertEqual(package["version"], sdd.VERSION)
+        self.assertEqual(pyproject["project"]["name"], "runproof-cli")
+        self.assertEqual(package["name"], "runproof-cli")
 
     def test_packaged_templates_are_present(self) -> None:
         template_root = files("proofkit").joinpath("templates")

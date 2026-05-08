@@ -1,23 +1,15 @@
 {
-  "name": "proofkit-cli",
+  "name": "runproof-cli",
   "version": "0.27.0",
   "description": "AI development governance engine — prevent hallucinated completion and vanishing intent in agent-assisted software teams.",
   "license": "MIT",
-  "homepage": "https://github.com/sebamar88/proofkit#readme",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/sebamar88/proofkit.git"
-  },
-  "bugs": {
-    "url": "https://github.com/sebamar88/proofkit/issues"
-  },
   "bin": {
-    "proofkit": "bin/proofkit.js"
+    "runproof": "bin/runproof.js"
   },
   "files": [
     "bin/",
-    "proofkit/",
-    "scripts/sdd.py",
+    "runproof/",
+    "scripts/",
     "README.md",
     "LICENSE",
     "NOTICE.md",
@@ -27,14 +19,6 @@
     "!**/*.pyc",
     "!docs/superpowers/**"
   ],
-  "keywords": [
-    "sdd",
-    "spec-driven-development",
-    "agents",
-    "ai",
-    "workflow"
-  ],
-  "engines": {
-    "node": ">=18"
-  }
+  "keywords": ["runproof", "spec-driven-development", "agents", "ai", "workflow"],
+  "engines": { "node": ">=18" }
 }

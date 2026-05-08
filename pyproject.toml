@@ -3,16 +3,16 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "proofkit-cli"
+name = "runproof-cli"
 version = "0.27.0"
 description = "AI development governance engine — prevent hallucinated completion and vanishing intent in agent-assisted software teams."
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
 authors = [
-  { name = "ProofKit contributors" }
+  { name = "RunProof contributors" }
 ]
-keywords = ["sdd", "spec-driven-development", "agents", "ai", "workflow"]
+keywords = ["runproof", "spec-driven-development", "agents", "ai", "workflow", "governance"]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Environment :: Console",
@@ -25,10 +25,10 @@ classifiers = [
 dependencies = []
 
 [project.scripts]
-proofkit = "proofkit.cli:main"
+runproof = "runproof.cli:main"
 
 [tool.setuptools.packages.find]
-include = ["proofkit*"]
+include = ["runproof*"]
 
 [tool.setuptools.package-data]
-proofkit = ["templates/**/*"]
+runproof = ["templates/**/*"]
