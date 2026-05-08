@@ -2,7 +2,7 @@
   "schema": "runproof.adapter-capabilities.v1",
   "adapter": "qwen-code",
   "version": "0.1.0",
-  "description": "Concrete adapter manifest for running ProofKit with Qwen Code while keeping all lifecycle state in repository artifacts.",
+  "description": "Concrete adapter manifest for running RunProof with Qwen Code while keeping all lifecycle state in repository artifacts.",
   "host": {
     "agent_runtime": "qwen-code",
     "operating_system": "any",
@@ -32,7 +32,7 @@
   },
   "skills": {
     "supported": ["propose", "specify", "design", "task", "implement", "verify", "critique", "sync-specs", "archive"],
-    "mapping": "prepend the selected .sdd/skills/<skill>.md contract to the Qwen Code task prompt"
+    "mapping": "prepend the selected .runproof/skills/<skill>.md contract to the Qwen Code task prompt"
   },
   "verification": {
     "command_execution": true,

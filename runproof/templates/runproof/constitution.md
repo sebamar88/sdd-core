@@ -6,7 +6,7 @@ created: 2026-05-03
 updated: 2026-05-03
 ---
 
-# ProofKit Constitution
+# RunProof Constitution
 
 ## Principles
 
@@ -27,8 +27,8 @@ updated: 2026-05-03
 - Keep the protocol core minimal.
 - Add workflow detail through profiles rather than changing core requirements.
 - Do not introduce adapter-specific assumptions into core artifacts.
-- Treat `.sdd/specs/` as living behavior documentation.
-- Treat `.sdd/changes/` as isolated proposed or active changes.
+- Treat `.runproof/specs/` as living behavior documentation.
+- Treat `.runproof/changes/` as isolated proposed or active changes.
 
 ## Testing Policy
 

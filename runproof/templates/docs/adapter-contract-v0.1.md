@@ -1,35 +1,35 @@
 ---
 schema: sdd.adapter-contract.v1
-title: ProofKit Adapter Contract v0.1
+title: RunProof Adapter Contract v0.1
 status: draft
 date: 2026-05-03
 audience: adapter-authors
 scope: protocol-adapter
 ---
 
-# ProofKit Adapter Contract v0.1
+# RunProof Adapter Contract v0.1
 
 ## 1. Purpose
 
-An ProofKit adapter connects the protocol to a concrete agent environment, IDE, automation runtime, or command surface without changing the protocol core.
+A RunProof adapter connects the protocol to a concrete agent environment, IDE, automation runtime, or command surface without changing the protocol core.
 
-The adapter contract defines what an integration must preserve so ProofKit remains agent-agnostic and operating-system-agnostic.
+The adapter contract defines what an integration must preserve so RunProof remains agent-agnostic and operating-system-agnostic.
 
 ## 2. Adapter Responsibilities
 
 An adapter MUST:
 
-- Preserve `.sdd/` artifact semantics.
-- Read and honor `.sdd/constitution.md`.
-- Support at least one profile from `.sdd/profiles/`.
+- Preserve `.runproof/` artifact semantics.
+- Read and honor `.runproof/constitution.md`.
+- Support at least one profile from `.runproof/profiles/`.
 - Translate logical paths to host-native paths.
 - Translate verification actions to host-native process execution or manual evidence capture.
-- Record outputs in ProofKit artifacts instead of relying only on chat history.
+- Record outputs in RunProof artifacts instead of relying only on chat history.
 - Report unsupported capabilities explicitly.
 
 An adapter MUST NOT:
 
-- Require changes to ProofKit schemas to support one agent.
+- Require changes to RunProof schemas to support one agent.
 - Encode one operating system as the protocol default.
 - Treat a checked task as sufficient verification evidence.
 - Archive a behavior-changing change without updating living specs or documenting why no update is needed.
@@ -69,11 +69,11 @@ state:
 
 Capability declarations may be stored in adapter-specific locations, but they should be exportable as plain text.
 
-ProofKit includes a baseline manifest at `.sdd/adapters/generic-markdown.json`.
+RunProof includes a baseline manifest at `.runproof/adapters/generic-markdown.json`.
 
 ## 4. Path Translation
 
-ProofKit examples use logical repository paths such as `.sdd/changes/add-dark-mode/tasks.md`.
+RunProof examples use logical repository paths such as `.runproof/changes/add-dark-mode/tasks.md`.
 
 Adapters MUST translate logical paths into the host platform's native file access behavior.
 
@@ -125,7 +125,7 @@ Adapters SHOULD avoid passing full artifact contents between agents when a file 
 
 ## 7. Delegation Model
 
-ProofKit does not require subagents.
+RunProof does not require subagents.
 
 Adapters may implement one of these models:
 
@@ -157,8 +157,8 @@ Adapters SHOULD recover from interrupted sessions by reading artifacts, not chat
 
 Recovery order:
 
-1. Read `.sdd/constitution.md`.
-2. List `.sdd/changes/`.
+1. Read `.runproof/constitution.md`.
+2. List `.runproof/changes/`.
 3. Identify active changes and artifact statuses.
 4. Determine selected profile.
 5. Resume at the next incomplete phase.
@@ -192,9 +192,9 @@ Fully autonomous adapters must replace approval gates with explicit policy check
 
 ## 12. Compliance Checklist
 
-An adapter is ProofKit compliant when it can:
+An adapter is RunProof compliant when it can:
 
-- initialize or detect `.sdd/`
+- initialize or detect `.runproof/`
 - read the constitution
 - map supported agent role contracts
 - map supported skill contracts
@@ -230,7 +230,7 @@ The adapter may not redefine:
 
 ## 14. Open Questions
 
-- Should adapter capability declarations live under `.sdd/adapters/` or remain adapter-owned?
+- Should adapter capability declarations live under `.runproof/adapters/` or remain adapter-owned?
 - Should adapters register profile extensions in a shared manifest?
 - Should phase result records be mandatory for single-agent adapters?
 - Should approval records use a dedicated schema in v0.2?

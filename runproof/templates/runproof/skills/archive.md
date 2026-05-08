@@ -26,4 +26,4 @@ Archive a completed change and remove it from active work.
 
 ## Completion
 
-Archive is complete when history is preserved and the active change no longer appears in `.sdd/changes/`.
+Archive is complete when history is preserved and the active change no longer appears in `.runproof/changes/`.

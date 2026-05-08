@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://runproof.local/schemas/phase-result.schema.json",
-  "title": "ProofKit Phase Result Envelope",
+  "title": "RunProof Phase Result Envelope",
   "type": "object",
   "additionalProperties": true,
   "required": ["schema", "change_id", "phase", "status", "reads", "writes", "next"],

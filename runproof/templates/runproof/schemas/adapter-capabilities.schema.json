@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://runproof.local/schemas/adapter-capabilities.schema.json",
-  "title": "ProofKit Adapter Capabilities",
+  "title": "RunProof Adapter Capabilities",
   "type": "object",
   "additionalProperties": true,
   "required": ["schema", "adapter", "version", "profiles", "agents", "skills", "verification", "state"],

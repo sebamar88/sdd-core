@@ -2,7 +2,7 @@
   "schema": "runproof.adapter-capabilities.v1",
   "adapter": "codex",
   "version": "0.1.0",
-  "description": "Concrete adapter manifest for running ProofKit with Codex-style coding agents while keeping repository artifacts as the source of truth.",
+  "description": "Concrete adapter manifest for running RunProof with Codex-style coding agents while keeping repository artifacts as the source of truth.",
   "host": {
     "agent_runtime": "codex",
     "operating_system": "any",
@@ -32,7 +32,7 @@
   },
   "skills": {
     "supported": ["propose", "specify", "design", "task", "implement", "verify", "critique", "sync-specs", "archive"],
-    "mapping": "read .sdd/skills/<skill>.md and execute through Codex tool use"
+    "mapping": "read .runproof/skills/<skill>.md and execute through Codex tool use"
   },
   "verification": {
     "command_execution": true,

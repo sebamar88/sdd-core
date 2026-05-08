@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://runproof.local/schemas/verification.schema.json",
-  "title": "ProofKit Verification Record",
+  "title": "RunProof Verification Record",
   "type": "object",
   "additionalProperties": true,
   "required": ["schema", "change_id", "status", "matrix"],

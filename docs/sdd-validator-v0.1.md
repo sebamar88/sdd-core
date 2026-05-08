@@ -1,17 +1,17 @@
 ---
 schema: sdd.tooling-doc.v1
-title: ProofKit Reference Tooling v0.1
+title: RunProof Reference Tooling v0.1
 status: draft
 date: 2026-05-03
 audience: adapter-authors
 scope: reference-tooling
 ---
 
-# ProofKit Reference Tooling v0.1
+# RunProof Reference Tooling v0.1
 
 ## Purpose
 
-`scripts/sdd.py` is a dependency-free reference utility for validating the repository's ProofKit artifacts, showing SDD status, creating change artifact sets, checking archive readiness, syncing living specs, and archiving verified changes.
+`scripts/sdd.py` is a dependency-free reference utility for validating the repository's RunProof artifacts, showing RunProof status, creating change artifact sets, checking archive readiness, syncing living specs, and archiving verified changes.
 
 It is not the protocol. It is a small portable tool that proves the initial artifact layout can be checked without requiring a specific agent, shell, package manager, or operating system.
 
@@ -26,68 +26,68 @@ python -m pip install -e .
 Show the installed CLI version:
 
 ```text
-proofkit version
+runproof version
 ```
 
 Validate the current repository:
 
 ```text
-proofkit validate
+runproof validate
 ```
 
-Initialize ProofKit in a repository:
+Initialize RunProof in a repository:
 
 ```text
-proofkit init --root path-to-repository
+runproof init --root path-to-repository
 ```
 
 Validate another repository root:
 
 ```text
-proofkit validate --root path-to-repository
+runproof validate --root path-to-repository
 ```
 
-Show current SDD status:
+Show current RunProof status:
 
 ```text
-proofkit status
+runproof status
 ```
 
 Check whether a change is ready to archive:
 
 ```text
-proofkit check add-search
+runproof check add-search
 ```
 
 Archive a verified change:
 
 ```text
-proofkit archive add-search
+runproof archive add-search
 ```
 
 Sync a verified delta spec into living specs:
 
 ```text
-proofkit sync-specs add-search
+runproof sync-specs add-search
 ```
 
 Create a standard change:
 
 ```text
-proofkit new add-search --profile standard --title "Add search"
+runproof new add-search --profile standard --title "Add search"
 ```
 
 Create a change in another repository root:
 
 ```text
-proofkit new fix-login --profile bugfix --root path-to-repository
+runproof new fix-login --profile bugfix --root path-to-repository
 ```
 
 ## Checks
 
 The validator checks:
 
-- required `.sdd/` directories
+- required `.runproof/` directories
 - required adapter manifests
 - required agent files
 - required protocol and constitution files
@@ -107,7 +107,7 @@ The validator checks:
 
 ## Status
 
-`sdd status` summarizes repository health and active changes.
+`runproof status` summarizes repository health and active changes.
 
 It reports:
 
@@ -122,7 +122,7 @@ It reports:
 
 ## Readiness Check
 
-`sdd check <change-id>` evaluates whether a change is ready to archive.
+`runproof check <change-id>` evaluates whether a change is ready to archive.
 
 The first readiness gate is intentionally conservative:
 
@@ -139,9 +139,9 @@ The command exits with status code `0` only when the change is ready.
 
 ## Archive
 
-`sdd archive <change-id>` first runs the same readiness gate as `sdd check`.
+`runproof archive <change-id>` first runs the same readiness gate as `runproof check`.
 
-When the change is ready, it copies the active change directory to `.sdd/archive/<date>-<change-id>/` and removes the active change directory from `.sdd/changes/`.
+When the change is ready, it copies the active change directory to `.runproof/archive/<date>-<change-id>/` and removes the active change directory from `.runproof/changes/`.
 
 Rules:
 
@@ -152,18 +152,18 @@ Rules:
 
 ## Spec Sync
 
-`sdd sync-specs <change-id>` copies a verified `delta-spec.md` into `.sdd/specs/<change-id>/spec.md` as a living spec snapshot and records the sync in `archive.md` when that file exists.
+`runproof sync-specs <change-id>` copies a verified `delta-spec.md` into `.runproof/specs/<change-id>/spec.md` as a living spec snapshot and records the sync in `archive.md` when that file exists.
 
 Rules:
 
-- sync uses the same readiness gate as `sdd check`
+- sync uses the same readiness gate as `runproof check`
 - `delta-spec.md` is required
 - existing living specs are not overwritten
 - sync is conservative and does not perform semantic merge yet
 
 ## Change Creation
 
-`sdd new` creates `.sdd/changes/<change-id>/` and writes initial artifacts for the selected profile.
+`runproof new` creates `.runproof/changes/<change-id>/` and writes initial artifacts for the selected profile.
 
 Supported profiles:
 
@@ -177,7 +177,7 @@ Supported profiles:
 Rules:
 
 - `change-id` must be kebab-case.
-- The selected profile file must exist in `.sdd/profiles/`.
+- The selected profile file must exist in `.runproof/profiles/`.
 - Existing change directories are never overwritten.
 - Generated artifacts use Markdown frontmatter and logical repository paths.
 

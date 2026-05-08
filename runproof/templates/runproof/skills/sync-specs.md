@@ -26,4 +26,4 @@ Synchronize verified behavior changes into living specs.
 
 ## Completion
 
-Sync is complete when the behavior change is represented in `.sdd/specs/` and the change records what was updated.
+Sync is complete when the behavior change is represented in `.runproof/specs/` and the change records what was updated.

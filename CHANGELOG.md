@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.28.1 - 2026-05-08
+
+**Release hygiene: remove legacy npm wrapper and finish RunProof docs alignment**
+
+- Removed the deprecated `bin/ssd-core.js` compatibility wrapper from the repository and npm package.
+- Stopped shipping internal migration scripts in the npm tarball by tightening `package.json` package contents.
+- Hardened `scripts/release_check.py` to smoke-test `scripts/sdd.py` explicitly and fail if deprecated/internal-only files leak into npm artifacts.
+- Aligned README, release docs, protocol docs, adapter docs, and packaged templates with the current RunProof branding, `runproof-cli`, and `.runproof` state directory.
+- Verified the full release path end to end: unit tests, source-wrapper checks, wheel install smoke test, npm wrapper smoke test, and tarball contents.
+
 ## 0.28.0 - 2026-05-08
 
 **Rebranding: ProofKit → RunProof + slash commands nativos + UX de agente**

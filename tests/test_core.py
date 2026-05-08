@@ -25,7 +25,7 @@ class TestCore(unittest.TestCase):
         return [finding.message for finding in findings]
 
     def test_version_is_defined(self) -> None:
-        self.assertEqual(sdd.VERSION, "0.28.0")
+        self.assertEqual(sdd.VERSION, "0.28.1")
 
     def test_distribution_versions_match(self) -> None:
         pyproject = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))

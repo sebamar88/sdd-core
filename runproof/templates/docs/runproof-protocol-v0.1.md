@@ -1,17 +1,17 @@
 ---
 schema: sdd.protocol.v1
-title: ProofKit Protocol v0.1
+title: RunProof Protocol v0.1
 status: draft
 date: 2026-05-03
 audience: agent-framework-builders
 scope: protocol
 ---
 
-# ProofKit Protocol v0.1
+# RunProof Protocol v0.1
 
 ## 1. Purpose
 
-ProofKit is an agent-agnostic and operating-system-agnostic protocol for spec-driven development. It defines the minimum artifacts, lifecycle states, validation contracts, and adapter boundaries needed for AI coding agents to build software from explicit intent instead of chat-only context.
+RunProof is an agent-agnostic and operating-system-agnostic protocol for spec-driven development. It defines the minimum artifacts, lifecycle states, validation contracts, and adapter boundaries needed for AI coding agents to build software from explicit intent instead of chat-only context.
 
 The protocol is Markdown-first so humans can read and edit it directly. It is also machine-validable through required frontmatter, stable artifact names, and optional JSON schemas.
 
@@ -37,7 +37,7 @@ The protocol is Markdown-first so humans can read and edit it directly. It is al
 
 ## 4. Influences
 
-ProofKit distills four existing patterns:
+RunProof distills four existing patterns:
 
 - GitHub Spec Kit: constitution-driven development, phase gates, task traceability, and executable specifications.
 - OpenSpec: artifact store, delta specs, active changes, and archive/sync workflow.
@@ -48,7 +48,7 @@ The protocol intentionally does not clone any one of these systems.
 
 ## 5. Platform Independence
 
-ProofKit uses logical repository paths in examples. Logical paths use `/` as a portable notation, not as an operating-system requirement.
+RunProof uses logical repository paths in examples. Logical paths use `/` as a portable notation, not as an operating-system requirement.
 
 Adapters MUST translate logical paths, commands, environment access, file permissions, and process execution into the host platform's native behavior.
 
@@ -70,7 +70,7 @@ Artifacts SHOULD be UTF-8 Markdown with stable frontmatter. Adapters MAY normali
 An initialized project SHOULD use this layout:
 
 ```text
-.sdd/
+.runproof/
   adapters/
     generic-markdown.json
   agents/
@@ -128,24 +128,24 @@ An initialized project SHOULD use this layout:
 
 Required directories:
 
-- `.sdd/specs/`
-- `.sdd/changes/`
-- `.sdd/archive/`
+- `.runproof/specs/`
+- `.runproof/changes/`
+- `.runproof/archive/`
 
 Recommended directories:
 
-- `.sdd/adapters/`
-- `.sdd/agents/`
-- `.sdd/examples/`
-- `.sdd/profiles/`
-- `.sdd/schemas/`
-- `.sdd/skills/`
+- `.runproof/adapters/`
+- `.runproof/agents/`
+- `.runproof/examples/`
+- `.runproof/profiles/`
+- `.runproof/schemas/`
+- `.runproof/skills/`
 
 ## 7. Core Concepts
 
 ### Constitution
 
-`.sdd/constitution.md` defines stable project rules. It is not decorative documentation. Agents and adapters MUST treat it as an execution constraint.
+`.runproof/constitution.md` defines stable project rules. It is not decorative documentation. Agents and adapters MUST treat it as an execution constraint.
 
 Recommended sections:
 
@@ -161,13 +161,13 @@ Recommended sections:
 
 ### Living Specs
 
-`.sdd/specs/` describes current system behavior. Specs are organized by domain.
+`.runproof/specs/` describes current system behavior. Specs are organized by domain.
 
 Living specs answer: "What does the system do today?"
 
 ### Change
 
-`.sdd/changes/<change-id>/` describes a proposed or active modification.
+`.runproof/changes/<change-id>/` describes a proposed or active modification.
 
 A change answers:
 
@@ -200,19 +200,19 @@ Adapters MAY provide slash commands, skills, prompts, MCP tools, CLI commands, o
 
 ### Agent
 
-An agent is a portable role contract under `.sdd/agents/`. It defines responsibilities, inputs, outputs, and rules. Adapters may map agents to native subagents, prompts, menus, jobs, or inline execution.
+An agent is a portable role contract under `.runproof/agents/`. It defines responsibilities, inputs, outputs, and rules. Adapters may map agents to native subagents, prompts, menus, jobs, or inline execution.
 
 ### Skill
 
-A skill is a portable workflow capability under `.sdd/skills/`. It defines a phase action such as proposing, specifying, verifying, syncing specs, or archiving. Adapters may expose skills through their native command or workflow mechanisms.
+A skill is a portable workflow capability under `.runproof/skills/`. It defines a phase action such as proposing, specifying, verifying, syncing specs, or archiving. Adapters may expose skills through their native command or workflow mechanisms.
 
 ### Adapter Manifest
 
-An adapter manifest is a machine-readable capability declaration under `.sdd/adapters/`. It tells humans and tooling which profiles, agents, skills, verification mechanisms, and state recovery behaviors an adapter supports.
+An adapter manifest is a machine-readable capability declaration under `.runproof/adapters/`. It tells humans and tooling which profiles, agents, skills, verification mechanisms, and state recovery behaviors an adapter supports.
 
 ## 8. Required Artifact Metadata
 
-Every ProofKit artifact SHOULD begin with frontmatter.
+Every RunProof artifact SHOULD begin with frontmatter.
 
 Minimum fields:
 
@@ -351,9 +351,9 @@ change_id: add-dark-mode
 phase: specify
 status: complete
 reads:
-  - .sdd/changes/add-dark-mode/proposal.md
+  - .runproof/changes/add-dark-mode/proposal.md
 writes:
-  - .sdd/changes/add-dark-mode/delta-spec.md
+  - .runproof/changes/add-dark-mode/delta-spec.md
 next:
   - design
 risk: low
@@ -388,7 +388,7 @@ It MUST:
 
 - choose a profile
 - identify required artifacts
-- record declared workflow state in `.sdd/state.json`
+- record declared workflow state in `.runproof/state.json`
 - dispatch phases to capable agents or execute them directly if no delegation exists
 - pass artifact references, not unnecessary full context
 - enforce dependencies between phases
@@ -406,7 +406,7 @@ It MUST NOT:
 
 The state registry is not hidden runtime memory. It is a repository artifact that records the declared phase, transition history, and artifact checksum for each governed change. Tooling SHOULD compare this registry with the artifacts on disk before privileged actions such as sync, archive, commit hooks, or CI gates.
 
-Execution evidence is also repository-native. Commands executed by the workflow engine SHOULD record exit code, stdout/stderr log path, and output checksum under `.sdd/evidence/<change-id>/`.
+Execution evidence is also repository-native. Commands executed by the workflow engine SHOULD record exit code, stdout/stderr log path, and output checksum under `.runproof/evidence/<change-id>/`.
 
 ## 13. Task Contract
 
@@ -475,7 +475,7 @@ Verification evidence MAY include:
 
 Adapters MUST report known verification gaps.
 
-When executable evidence is required, `verification.md` is not enough by itself. The workflow MUST also include passing execution records under `.sdd/evidence/<change-id>/`, and those records MUST point to logs whose checksums still match.
+When executable evidence is required, `verification.md` is not enough by itself. The workflow MUST also include passing execution records under `.runproof/evidence/<change-id>/`, and those records MUST point to logs whose checksums still match.
 
 ## 15. Critique Contract
 
@@ -501,11 +501,11 @@ For enterprise changes, critique SHOULD be a hard gate.
 
 Archiving a change means:
 
-1. Apply `delta-spec.md` to `.sdd/specs/`.
+1. Apply `delta-spec.md` to `.runproof/specs/`.
 2. Record verification and critique status.
 3. Write `archive.md`.
-4. Move or copy the completed change to `.sdd/archive/<date>-<change-id>/`.
-5. Mark the active change as archived or remove it from `.sdd/changes/`.
+4. Move or copy the completed change to `.runproof/archive/<date>-<change-id>/`.
+5. Mark the active change as archived or remove it from `.runproof/changes/`.
 
 Archive MUST NOT occur when:
 
@@ -516,7 +516,7 @@ Archive MUST NOT occur when:
 
 ## 17. Adapter Contract
 
-An adapter integrates ProofKit into a concrete tool.
+An adapter integrates RunProof into a concrete tool.
 
 An adapter SHOULD define:
 
@@ -543,7 +543,7 @@ The adapter can vary. The artifact contract must remain stable.
 
 ## 18. Validation Levels
 
-ProofKit supports three validation levels:
+RunProof supports three validation levels:
 
 ### Level 0: Human-readable
 
@@ -573,8 +573,8 @@ A change is done only when:
 
 ## 20. Open Questions
 
-- Should `.sdd/protocol.md` be copied per project, or should projects pin a protocol version externally?
-- Should archive move completed changes or copy them and leave tombstones in `.sdd/changes/`?
+- Should `.runproof/protocol.md` be copied per project, or should projects pin a protocol version externally?
+- Should archive move completed changes or copy them and leave tombstones in `.runproof/changes/`?
 - Should JSON schemas be normative in v0.1 or introduced in v0.2?
 - How should adapters represent approval gates in fully autonomous environments?
 - Should profiles be composable, for example `bugfix + security`?

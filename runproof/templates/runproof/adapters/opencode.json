@@ -2,7 +2,7 @@
   "schema": "runproof.adapter-capabilities.v1",
   "adapter": "opencode",
   "version": "0.1.0",
-  "description": "Concrete adapter manifest for running ProofKit with OpenCode as an agentic coding runtime.",
+  "description": "Concrete adapter manifest for running RunProof with OpenCode as an agentic coding runtime.",
   "host": {
     "agent_runtime": "opencode",
     "operating_system": "any",
@@ -32,7 +32,7 @@
   },
   "skills": {
     "supported": ["propose", "specify", "design", "task", "implement", "verify", "critique", "sync-specs", "archive"],
-    "mapping": "translate .sdd/skills/<skill>.md into OpenCode task instructions"
+    "mapping": "translate .runproof/skills/<skill>.md into OpenCode task instructions"
   },
   "verification": {
     "command_execution": true,

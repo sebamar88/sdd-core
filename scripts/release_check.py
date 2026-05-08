@@ -145,6 +145,7 @@ def release_check(*, keep_temp: bool) -> None:
                 sys.executable,
                 "-m",
                 "py_compile",
+                "scripts/sdd.py",
                 "scripts/release_check.py",
                 "runproof/cli.py",
                 "runproof/_types.py",
@@ -154,6 +155,9 @@ def release_check(*, keep_temp: bool) -> None:
             ]
         )
         run([sys.executable, "-m", "unittest", "tests/test_sdd.py"])
+        run([sys.executable, "scripts/sdd.py", "validate"])
+        run([sys.executable, "scripts/sdd.py", "status"])
+        run([sys.executable, "scripts/sdd.py", "version"])
         run([sys.executable, "-m", "runproof", "version"])
 
         create_virtualenv()
@@ -200,6 +204,14 @@ def release_check(*, keep_temp: bool) -> None:
                 forbidden = [name for name in names if "__pycache__" in name or name.endswith(".pyc") or name.startswith("package/docs/superpowers/")]
                 if forbidden:
                     raise AssertionError(f"npm package contains non-product files: {forbidden}")
+                disallowed_paths = [
+                    "package/bin/ssd-core.js",
+                    "package/scripts/insert_0_8_helpers.py",
+                    "package/scripts/split_modules.py",
+                ]
+                leaked = [name for name in names if name in disallowed_paths]
+                if leaked:
+                    raise AssertionError(f"npm package contains deprecated or internal-only files: {leaked}")
 
             run([npm, "install", str(tarball_path), "--prefix", str(NPM_PROJECT_ROOT)])
             npm_launcher = NPM_PROJECT_ROOT / "node_modules" / "runproof-cli" / "bin" / "runproof.js"

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://runproof.local/schemas/agent.schema.json",
-  "title": "ProofKit Agent Contract Metadata",
+  "title": "RunProof Agent Contract Metadata",
   "type": "object",
   "additionalProperties": true,
   "required": ["schema", "artifact", "role", "status"],

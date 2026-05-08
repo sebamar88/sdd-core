@@ -1,6 +1,6 @@
 {
   "name": "runproof-cli",
-  "version": "0.28.0",
+  "version": "0.28.1",
   "description": "AI development governance engine — prevent hallucinated completion and vanishing intent in agent-assisted software teams.",
   "license": "MIT",
   "bin": {
@@ -9,7 +9,6 @@
   "files": [
     "bin/",
     "runproof/",
-    "scripts/",
     "README.md",
     "LICENSE",
     "NOTICE.md",

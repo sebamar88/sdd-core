@@ -2,7 +2,7 @@
   "schema": "runproof.adapter-capabilities.v1",
   "adapter": "claude-code",
   "version": "0.1.0",
-  "description": "Concrete adapter manifest for running ProofKit with Claude Code while preserving portable Markdown artifacts and verification gates.",
+  "description": "Concrete adapter manifest for running RunProof with Claude Code while preserving portable Markdown artifacts and verification gates.",
   "host": {
     "agent_runtime": "claude-code",
     "operating_system": "any",
@@ -32,7 +32,7 @@
   },
   "skills": {
     "supported": ["propose", "specify", "design", "task", "implement", "verify", "critique", "sync-specs", "archive"],
-    "mapping": "load .sdd/skills/<skill>.md as phase instructions before acting"
+    "mapping": "load .runproof/skills/<skill>.md as phase instructions before acting"
   },
   "verification": {
     "command_execution": true,

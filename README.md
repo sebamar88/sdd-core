@@ -68,7 +68,7 @@ AI coding agents are excellent at producing code. They are much weaker at:
 - proving that tests ran, rather than saying they did
 - keeping specs in sync when behavior changes
 
-RunProof turns "the agent said it passed" into structured, checksummed evidence stored in your repository. No lock-in. No operating-system lock-in. The workflow state is explicit, versioned, and repository-native in `.sdd/state.json`.
+RunProof turns "the agent said it passed" into structured, checksummed evidence stored in your repository. No lock-in. No operating-system lock-in. The workflow state is explicit, versioned, and repository-native in `.runproof/state.json`.
 
 ---
 
@@ -77,26 +77,26 @@ RunProof turns "the agent said it passed" into structured, checksummed evidence 
 Runs the full Golden Path in a temp directory and cleans up after itself:
 
 ```text
-npx -y runproof@latest demo
+npx -y runproof-cli@latest demo
 ```
 
 What you will see:
 
 ```text
 ── Step 1/7: runproof init
-   ✓ Initialized .sdd/ (adapters, agents, profiles, schemas, skills, specs)
+   ✓ Initialized .runproof/ (adapters, agents, profiles, schemas, skills, specs)
 ── Step 2/7: runproof new demo-harden-login --profile quick
-   ✓ Created .sdd/changes/demo-harden-login/ (proposal.md, tasks.md, verification.md)
+   ✓ Created .runproof/changes/demo-harden-login/ (proposal.md, tasks.md, verification.md)
    ✓ Phase automatically recorded → propose
 ── Step 3/7: Agent fills proposal.md → status: ready
 ── Step 4/7: Agent closes tasks.md → status: ready
 ── Step 5/7: runproof transition demo-harden-login task
-   ✓ Phase recorded in .sdd/state.json → task
+   ✓ Phase recorded in .runproof/state.json → task
 ── Step 6/7: runproof verify --command 'echo all-tests-pass'
-   ✓ Command executed; output checksummed → .sdd/evidence/
+   ✓ Command executed; output checksummed → .runproof/evidence/
    ✓ verification.md updated automatically → status: verified
 ── Step 7/7: runproof transition archive  &&  runproof archive
-   ✓ Change closed → .sdd/archive/2026-05-05-demo-harden-login/
+   ✓ Change closed → .runproof/archive/2026-05-05-demo-harden-login/
 ── runproof validate
    ✓ Repository governance passed — zero errors
 ```
@@ -118,13 +118,13 @@ pipx install runproof-cli
 Or via the Node wrapper:
 
 ```text
-npm install -g runproof
+npm install -g runproof-cli
 ```
 
 Or one-shot:
 
 ```text
-npx -y runproof@latest version
+npx -y runproof-cli@latest version
 ```
 
 Or from source (requires Python 3.11+):
@@ -166,7 +166,7 @@ runproof validate --root my-app
 runproof run harden-login-rate-limit --profile standard --title "Harden login rate limits" --root my-app
 ```
 
-Result: `.sdd/changes/harden-login-rate-limit/` with six artifacts — `proposal.md`, `delta-spec.md`, `design.md`, `tasks.md`, `verification.md`, `archive.md`.
+Result: `.runproof/changes/harden-login-rate-limit/` with six artifacts — `proposal.md`, `delta-spec.md`, `design.md`, `tasks.md`, `verification.md`, `archive.md`.
 
 `run` creates the change if needed, reads the artifact state, names the current phase, and tells the agent the next allowed action.
 
@@ -235,7 +235,7 @@ verified = workflow.verify(
 )
 ```
 
-`transition()`, `verify()`, `sync_specs()`, and `archive()` refuse invalid phase order. `verify` executes commands and stores reproducible logs under `.sdd/evidence/` with SHA-256 checksums. That is the difference between SDD helpers and SDD enforcement.
+`transition()`, `verify()`, `sync_specs()`, and `archive()` refuse invalid phase order. `verify` executes commands and stores reproducible logs under `.runproof/evidence/` with SHA-256 checksums. That is the difference between SDD helpers and SDD enforcement.
 
 ---
 
@@ -283,7 +283,7 @@ runproof install-hooks --root my-app
 - the repository foundation is invalid
 - a workflow is blocked
 - an archived delta was not synced into living specs
-- the policy requires an active `.sdd/changes/*` record and none exists
+- the policy requires an active `.runproof/changes/*` record and none exists
 - strict state finds stale artifact checksums
 - execution evidence is required but missing
 
@@ -333,7 +333,7 @@ runproof --trace transition my-change specify --root .
 
 ## Current Status
 
-Current release: `v0.27.0`
+Current release: `v0.28.1`
 
 Production-ready:
 

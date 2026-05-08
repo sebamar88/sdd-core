@@ -12,12 +12,12 @@ updated: 2026-05-03
 
 ## Intent
 
-Demonstrate a complete standard-profile ProofKit change without modifying product code.
+Demonstrate a complete standard-profile RunProof change without modifying product code.
 
 ## Scope
 
 - Add a reference example showing proposal, delta spec, design, tasks, verification, and archive artifacts.
-- Keep the example self-contained under `.sdd/examples/`.
+- Keep the example self-contained under `.runproof/examples/`.
 
 ## Non-Scope
 

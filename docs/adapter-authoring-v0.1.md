@@ -1,17 +1,17 @@
 ---
 schema: sdd.adapter-authoring.v1
-title: ProofKit Adapter Authoring Guide v0.1
+title: RunProof Adapter Authoring Guide v0.1
 status: draft
 date: 2026-05-03
 audience: adapter-authors
 scope: adapter-guide
 ---
 
-# ProofKit Adapter Authoring Guide v0.1
+# RunProof Adapter Authoring Guide v0.1
 
 ## Purpose
 
-An ProofKit adapter maps portable Markdown contracts to a concrete runtime without changing the protocol.
+A RunProof adapter maps portable Markdown contracts to a concrete runtime without changing the protocol.
 
 Adapters may target agent CLIs, IDEs, CI systems, local scripts, or manual team workflows.
 
@@ -19,10 +19,10 @@ Adapters may target agent CLIs, IDEs, CI systems, local scripts, or manual team 
 
 A minimum adapter must:
 
-- read `.sdd/constitution.md`
-- read `.sdd/profiles/`
-- read `.sdd/agents/`
-- read `.sdd/skills/`
+- read `.runproof/constitution.md`
+- read `.runproof/profiles/`
+- read `.runproof/agents/`
+- read `.runproof/skills/`
 - create change artifacts
 - record verification evidence
 - preserve archive safety rules
@@ -30,17 +30,17 @@ A minimum adapter must:
 
 ## Capability Manifest
 
-Adapters should publish a manifest compatible with `.sdd/schemas/adapter-capabilities.schema.json`.
+Adapters should publish a manifest compatible with `.runproof/schemas/adapter-capabilities.schema.json`.
 
 The reference manifest is:
 
 ```text
-.sdd/adapters/generic-markdown.json
+.runproof/adapters/generic-markdown.json
 ```
 
 ## Mapping Agents
 
-Each file in `.sdd/agents/` is a role contract.
+Each file in `.runproof/agents/` is a role contract.
 
 An adapter may map an agent to:
 
@@ -53,7 +53,7 @@ An adapter may map an agent to:
 
 ## Mapping Skills
 
-Each file in `.sdd/skills/` is a workflow capability.
+Each file in `.runproof/skills/` is a workflow capability.
 
 An adapter may expose skills as:
 
@@ -69,7 +69,7 @@ An adapter may expose skills as:
 - Verification evidence must be written back to the repo.
 - `status`-like operations must stay read-only.
 - Archive must not overwrite existing records.
-- Runtime state must not replace `.sdd/` artifacts.
+- Runtime state must not replace `.runproof/` artifacts.
 
 ## Recommended Build Order
 

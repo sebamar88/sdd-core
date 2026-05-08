@@ -15,7 +15,7 @@ Select the profile, sequence phases, route work to agents or inline execution, a
 
 ## Inputs
 
-- `.sdd/constitution.md`
+- `.runproof/constitution.md`
 - selected profile
 - active change artifacts
 - adapter capability declaration

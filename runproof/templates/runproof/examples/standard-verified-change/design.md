@@ -13,15 +13,15 @@ updated: 2026-05-03
 ## Approach
 
 - Use Markdown artifacts only.
-- Keep the example outside `.sdd/changes/` so it is not treated as active work.
+- Keep the example outside `.runproof/changes/` so it is not treated as active work.
 - Make the example pass the same frontmatter validation rules as live artifacts.
 
 ## Decisions
 
-- Store the example under `.sdd/examples/standard-verified-change/`.
+- Store the example under `.runproof/examples/standard-verified-change/`.
 - Use `status: verified` only for verification because the evidence matrix is complete.
 
 ## Alternatives Rejected
 
-- Store the example under `.sdd/changes/` | it would appear as active work.
-- Store the example only in docs | it would not exercise `.sdd` artifact validation.
+- Store the example under `.runproof/changes/` | it would appear as active work.
+- Store the example only in docs | it would not exercise `.runproof` artifact validation.

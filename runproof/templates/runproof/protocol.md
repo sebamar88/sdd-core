@@ -6,12 +6,12 @@ created: 2026-05-03
 updated: 2026-05-03
 ---
 
-# ProofKit Protocol
+# RunProof Protocol
 
-This project uses ProofKit Protocol v0.1.
+This project uses RunProof Protocol v0.1.
 
 Canonical explanatory spec:
 
 - `docs/runproof-protocol-v0.1.md`
 
-Operational artifacts in `.sdd/` follow that protocol. Keep this file short to avoid duplicating the canonical protocol text.
+Operational artifacts in `.runproof/` follow that protocol. Keep this file short to avoid duplicating the canonical protocol text.

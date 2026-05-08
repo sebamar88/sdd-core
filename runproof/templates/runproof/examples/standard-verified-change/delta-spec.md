@@ -12,7 +12,7 @@ updated: 2026-05-03
 
 ## ADDED
 
-- A documented standard-profile example exists under `.sdd/examples/standard-verified-change/`.
+- A documented standard-profile example exists under `.runproof/examples/standard-verified-change/`.
 - The example includes all standard-profile artifacts.
 - The example demonstrates verified task completion and archive readiness.
 

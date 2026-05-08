@@ -14,7 +14,7 @@ updated: 2026-05-03
 
 | Requirement | Scenario | Tasks | Evidence | Status |
 | --- | --- | --- | --- | --- |
-| standard example exists | artifacts present | T-001 | example files under `.sdd/examples/standard-verified-change/` | pass |
+| standard example exists | artifacts present | T-001 | example files under `.runproof/examples/standard-verified-change/` | pass |
 | example is structurally valid | repository validation | T-002 | `python scripts/sdd.py validate` | pass |
 
 ## Commands
@@ -23,7 +23,7 @@ updated: 2026-05-03
 
 ## Manual Checks
 
-- Confirmed the example is outside `.sdd/changes/`.
+- Confirmed the example is outside `.runproof/changes/`.
 
 ## Gaps
 

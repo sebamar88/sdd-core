@@ -1,8 +1,8 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "runproof.extension.v1",
-  "title": "ProofKit Extension Manifest",
-  "description": "Manifest for an ProofKit extension package.",
+  "title": "RunProof Extension Manifest",
+  "description": "Manifest for a RunProof extension package.",
   "type": "object",
   "required": ["schema", "name", "version", "description", "author"],
   "additionalProperties": false,
