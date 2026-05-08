@@ -74,6 +74,14 @@ def active_change_directories(root: Path) -> list[Path]:
     return sorted(path for path in changes_dir.iterdir() if path.is_dir())
 
 
+def resolve_active_change_id(root: Path) -> str | None:
+    """Return the single active change_id, or None if zero or multiple exist."""
+    dirs = active_change_directories(root)
+    if len(dirs) == 1:
+        return dirs[0].name
+    return None
+
+
 def status(root: Path) -> tuple[list[Finding], list[ChangeSummary]]:
     from ._wf_validation import validate
     findings = validate(root)

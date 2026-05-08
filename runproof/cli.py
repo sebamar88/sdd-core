@@ -20,7 +20,7 @@ from ._dispatch import (  # noqa: F401
 from ._types import _PHASE_ICON  # noqa: F401
 from ._workflow import _PHASE_ARTIFACT_FILE, _auto_advance  # noqa: F401
 from ._workflow import _CI_TEMPLATES  # noqa: F401
-from ._wf_changeops import mark_artifact_ready  # noqa: F401
+from ._wf_changeops import mark_artifact_ready, resolve_active_change_id  # noqa: F401
 
 
 
@@ -75,7 +75,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="advance a change: execute all ready steps, stop on human-work phases",
         epilog="example:\n  runproof auto add-dark-mode\n  runproof auto add-dark-mode --loop --verify-with 'pytest -x'",
     )
-    auto_parser.add_argument("change_id", help="kebab-case change identifier")
+    auto_parser.add_argument("change_id", nargs="?", default=None, help="kebab-case change identifier; inferred if only one active change exists")
     auto_parser.add_argument(
         "--loop",
         action="store_true",
@@ -124,12 +124,18 @@ def build_parser() -> argparse.ArgumentParser:
     status_parser = subcommands.add_parser(
         "status",
         help="show RunProof repository status",
-        epilog="example:\n  runproof status",
+        epilog="example:\n  runproof status\n  runproof status --json",
     )
     status_parser.add_argument(
         "--root",
         default=".",
         help="repository root; defaults to the current directory",
+    )
+    status_parser.add_argument(
+        "--json",
+        action="store_true",
+        default=False,
+        help="output status as machine-readable JSON",
     )
 
     check_parser = subcommands.add_parser(
@@ -201,6 +207,30 @@ def build_parser() -> argparse.ArgumentParser:
         help="repository root; defaults to the current directory",
     )
 
+    next_parser = subcommands.add_parser(
+        "next",
+        help="advance the active change: auto-execute ready steps, stop at phases requiring human input",
+        epilog="example:\n  runproof next\n  runproof next add-dark-mode\n  runproof next --verify-with 'pytest -x'",
+    )
+    next_parser.add_argument(
+        "change_id",
+        nargs="?",
+        default=None,
+        help="kebab-case change identifier; inferred if only one active change exists",
+    )
+    next_parser.add_argument(
+        "--verify-with",
+        action="append",
+        default=[],
+        metavar="CMD",
+        help="verification command to run automatically at the verify phase; may be repeated",
+    )
+    next_parser.add_argument(
+        "--root",
+        default=".",
+        help="repository root; defaults to the current directory",
+    )
+
     run_parser = subcommands.add_parser(
         "run",
         help="run the RunProof workflow gate for a change",
@@ -265,7 +295,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="show the recorded command history for a change",
         epilog="example:\n  runproof log add-dark-mode",
     )
-    log_parser.add_argument("change_id", help="kebab-case change identifier")
+    log_parser.add_argument("change_id", nargs="?", default=None, help="kebab-case change identifier; inferred if only one active change exists")
     log_parser.add_argument(
         "--root",
         default=".",
@@ -282,7 +312,7 @@ def build_parser() -> argparse.ArgumentParser:
             "  runproof verify add-dark-mode --command 'npm test' --command 'eslint .'"
         ),
     )
-    verify_parser.add_argument("change_id", help="kebab-case change identifier")
+    verify_parser.add_argument("change_id", nargs="?", default=None, help="kebab-case change identifier; inferred if only one active change exists")
     verify_parser.add_argument(
         "--command",
         dest="commands",
@@ -323,7 +353,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="show execution evidence records for a change",
         epilog="example:\n  runproof evidence add-dark-mode",
     )
-    evidence_parser.add_argument("change_id", help="kebab-case change identifier")
+    evidence_parser.add_argument("change_id", nargs="?", default=None, help="kebab-case change identifier; inferred if only one active change exists")
     evidence_parser.add_argument(
         "--root",
         default=".",
@@ -335,7 +365,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="output a PR-ready governance report and exit 0 only if the change is safe to merge",
         epilog="example:\n  runproof pr-check add-dark-mode",
     )
-    pr_check_parser.add_argument("change_id", help="kebab-case change identifier")
+    pr_check_parser.add_argument("change_id", nargs="?", default=None, help="kebab-case change identifier; inferred if only one active change exists")
     pr_check_parser.add_argument(
         "--root",
         default=".",
@@ -540,7 +570,11 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "auto":
         root = Path(args.root).resolve()
-        return print_auto(root, args.change_id, loop=args.loop, verify_commands=args.verify_with or None)
+        change_id = args.change_id or resolve_active_change_id(root)
+        if change_id is None:
+            print(_red("✗") + " No active changes. Create one with 'runproof new'.")
+            return 1
+        return print_auto(root, change_id, loop=args.loop, verify_commands=args.verify_with or None)
 
     if args.command == "init":
         root = Path(args.root).resolve()
@@ -575,6 +609,8 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "status":
         root = Path(args.root).resolve()
+        if getattr(args, "json", False):
+            return print_status_json(root)
         return print_status(root)
 
     if args.command == "check":
@@ -621,10 +657,19 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "log":
         root = Path(args.root).resolve()
-        return print_log(root, args.change_id)
+        change_id = args.change_id or resolve_active_change_id(root)
+        if change_id is None:
+            print(_red("✗") + " No active changes. Create one with 'runproof new'.")
+            return 1
+        return print_log(root, change_id)
 
     if args.command == "verify":
         root = Path(args.root).resolve()
+        change_id = args.change_id or resolve_active_change_id(root)
+        if change_id is None:
+            print(_red("✗") + " No active changes. Create one with 'runproof new'.")
+            return 1
+        args.change_id = change_id
         commands: list[str] = list(args.commands)
         if args.discover:
             discovered = discover_test_command(root)
@@ -715,11 +760,27 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "evidence":
         root = Path(args.root).resolve()
-        return print_evidence(root, args.change_id)
+        change_id = args.change_id or resolve_active_change_id(root)
+        if change_id is None:
+            print(_red("✗") + " No active changes. Create one with 'runproof new'.")
+            return 1
+        return print_evidence(root, change_id)
 
     if args.command == "pr-check":
         root = Path(args.root).resolve()
-        return print_pr_check(root, args.change_id)
+        change_id = args.change_id or resolve_active_change_id(root)
+        if change_id is None:
+            print(_red("✗") + " No active changes. Create one with 'runproof new'.")
+            return 1
+        return print_pr_check(root, change_id)
+
+    if args.command == "next":
+        root = Path(args.root).resolve()
+        change_id = args.change_id or resolve_active_change_id(root)
+        if change_id is None:
+            print(_red("✗") + " No active changes. Create one with 'runproof new'.")
+            return 1
+        return print_auto(root, change_id, loop=True, verify_commands=args.verify_with or None)
 
     parser.error(f"unsupported command: {args.command}")
     return 2

@@ -466,6 +466,64 @@ class TestWorkflow(unittest.TestCase):
         self.assertIn("--strict-state", push_text)
         self.assertNotIn("--require-active-change", push_text)
 
+    def test_resolve_active_change_id_returns_single_active(self) -> None:
+        root = REPO_ROOT / ".tmp-tests" / f"resolve-{uuid.uuid4().hex}"
+        with contextlib.redirect_stdout(io.StringIO()):
+            sdd.init_project(root)
+            sdd.create_change(root, "my-change", "quick", "My change")
+        result = sdd.resolve_active_change_id(root)
+        self.assertEqual(result, "my-change")
+        shutil.rmtree(root, ignore_errors=True)
+
+    def test_resolve_active_change_id_returns_none_when_no_changes(self) -> None:
+        root = REPO_ROOT / ".tmp-tests" / f"resolve-empty-{uuid.uuid4().hex}"
+        with contextlib.redirect_stdout(io.StringIO()):
+            sdd.init_project(root)
+        result = sdd.resolve_active_change_id(root)
+        self.assertIsNone(result)
+        shutil.rmtree(root, ignore_errors=True)
+
+    def test_runproof_next_advances_auto_phases(self) -> None:
+        root = REPO_ROOT / ".tmp-tests" / f"next-{uuid.uuid4().hex}"
+        change_id = "test-next"
+        with contextlib.redirect_stdout(io.StringIO()):
+            sdd.init_project(root)
+            sdd.create_change(root, change_id, "quick", "Test next")
+
+        # Mark proposal ready
+        change_dir = root / ".runproof" / "changes" / change_id
+        proposal = change_dir / "proposal.md"
+        proposal.write_text(
+            proposal.read_text(encoding="utf-8").replace("status: draft", "status: ready"),
+            encoding="utf-8",
+        )
+
+        with contextlib.redirect_stdout(io.StringIO()):
+            rc = sdd.main(["next", "--root", str(root)])
+
+        self.assertEqual(rc, 0)
+        shutil.rmtree(root, ignore_errors=True)
+
+    def test_status_json_returns_valid_json(self) -> None:
+        root = REPO_ROOT / ".tmp-tests" / f"status-json-{uuid.uuid4().hex}"
+        with contextlib.redirect_stdout(io.StringIO()):
+            sdd.init_project(root)
+            sdd.create_change(root, "test-change", "quick", "Test change")
+
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            rc = sdd.main(["status", "--json", "--root", str(root)])
+
+        self.assertEqual(rc, 0)
+        data = json.loads(buf.getvalue())
+        self.assertIn("change_id", data)
+        self.assertIn("phase", data)
+        self.assertIn("next_action", data)
+        self.assertIn("can_auto_advance", data)
+        self.assertIn("missing_artifacts", data)
+        self.assertEqual(data["change_id"], "test-change")
+        shutil.rmtree(root, ignore_errors=True)
+
 
 class TestMarkArtifactReady(unittest.TestCase):
     """Tests for the runproof ready UX command."""
