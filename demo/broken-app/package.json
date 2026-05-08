@@ -1,0 +1,9 @@
+{
+  "name": "runproof-demo-broken-app",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Tiny intentionally broken app used by the RunProof demo.",
+  "scripts": {
+    "test": "node test.js"
+  }
+}
