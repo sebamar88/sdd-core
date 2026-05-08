@@ -54,8 +54,8 @@ def venv_python() -> Path:
 
 def venv_cli() -> Path:
     if os.name == "nt":
-        return VENV_ROOT / "Scripts" / "proofkit.exe"
-    return VENV_ROOT / "bin" / "proofkit"
+        return VENV_ROOT / "Scripts" / "runproof.exe"
+    return VENV_ROOT / "bin" / "runproof"
 
 
 def npm_command() -> str | None:
@@ -97,11 +97,11 @@ def read_package_version() -> str:
 
 
 def read_cli_version() -> str:
-    text = (REPO_ROOT / "proofkit" / "_types.py").read_text(encoding="utf-8")
+    text = (REPO_ROOT / "runproof" / "_types.py").read_text(encoding="utf-8")
     for line in text.splitlines():
         if line.startswith(VERSION_PREFIX):
             return line.split('"', 2)[1]
-    raise AssertionError("proofkit._types VERSION was not found")
+    raise AssertionError("runproof._types VERSION was not found")
 
 
 def verify_versions() -> str:
@@ -111,7 +111,7 @@ def verify_versions() -> str:
     versions = {
         "pyproject.toml": pyproject_version,
         "package.json": package_version,
-        "proofkit/_types.py": cli_version,
+        "runproof/_types.py": cli_version,
     }
 
     if len(set(versions.values())) != 1:
@@ -145,19 +145,16 @@ def release_check(*, keep_temp: bool) -> None:
                 sys.executable,
                 "-m",
                 "py_compile",
-                "scripts/sdd.py",
-                "proofkit/cli.py",
-                "proofkit/_types.py",
-                "proofkit/__init__.py",
-                "proofkit/__main__.py",
-                "tests/test_sdd.py",
                 "scripts/release_check.py",
+                "runproof/cli.py",
+                "runproof/_types.py",
+                "runproof/__init__.py",
+                "runproof/__main__.py",
+                "tests/test_sdd.py",
             ]
         )
         run([sys.executable, "-m", "unittest", "tests/test_sdd.py"])
-        run([sys.executable, "scripts/sdd.py", "validate"])
-        run([sys.executable, "scripts/sdd.py", "status"])
-        run([sys.executable, "-m", "proofkit", "version"])
+        run([sys.executable, "-m", "runproof", "version"])
 
         create_virtualenv()
 
@@ -172,10 +169,10 @@ def release_check(*, keep_temp: bool) -> None:
         run([str(venv_cli()), "install-hooks", "--root", str(SMOKE_ROOT)])
 
         for adapter in ["codex", "claude-code", "gemini-cli", "opencode", "qwen-code", "generic-markdown"]:
-            adapter_path = SMOKE_ROOT / ".proofkit" / "adapters" / f"{adapter}.json"
+            adapter_path = SMOKE_ROOT / ".runproof" / "adapters" / f"{adapter}.json"
             if not adapter_path.is_file():
                 raise AssertionError(f"packaged adapter was not initialized: {adapter_path}")
-        workflow_proposal = SMOKE_ROOT / ".proofkit" / "changes" / "release-gate" / "proposal.md"
+        workflow_proposal = SMOKE_ROOT / ".runproof" / "changes" / "release-gate" / "proposal.md"
         if not workflow_proposal.is_file():
             raise AssertionError(f"installed CLI did not create workflow change: {workflow_proposal}")
 
@@ -205,7 +202,7 @@ def release_check(*, keep_temp: bool) -> None:
                     raise AssertionError(f"npm package contains non-product files: {forbidden}")
 
             run([npm, "install", str(tarball_path), "--prefix", str(NPM_PROJECT_ROOT)])
-            npm_launcher = NPM_PROJECT_ROOT / "node_modules" / "proofkit-cli" / "bin" / "proofkit.js"
+            npm_launcher = NPM_PROJECT_ROOT / "node_modules" / "runproof-cli" / "bin" / "runproof.js"
             run([node, str(npm_launcher), "version"])
             run([node, str(npm_launcher), "init", "--root", str(NPM_SMOKE_ROOT)])
             run([node, str(npm_launcher), "validate", "--root", str(NPM_SMOKE_ROOT)])
@@ -233,14 +230,14 @@ def release_check(*, keep_temp: bool) -> None:
             (NPM_PROJECT_ROOT / NPM_RELATIVE_SMOKE_ROOT / ".git").mkdir()
             run([node, str(npm_launcher), "install-hooks", "--root", str(NPM_RELATIVE_SMOKE_ROOT)], cwd=NPM_PROJECT_ROOT)
 
-            npm_adapter = NPM_SMOKE_ROOT / ".proofkit" / "adapters" / "codex.json"
+            npm_adapter = NPM_SMOKE_ROOT / ".runproof" / "adapters" / "codex.json"
             if not npm_adapter.is_file():
                 raise AssertionError(f"npm wrapper did not initialize packaged adapters: {npm_adapter}")
-            relative_npm_adapter = NPM_PROJECT_ROOT / NPM_RELATIVE_SMOKE_ROOT / ".proofkit" / "adapters" / "codex.json"
+            relative_npm_adapter = NPM_PROJECT_ROOT / NPM_RELATIVE_SMOKE_ROOT / ".runproof" / "adapters" / "codex.json"
             if not relative_npm_adapter.is_file():
                 raise AssertionError(f"npm wrapper did not resolve relative roots from caller cwd: {relative_npm_adapter}")
             relative_npm_proposal = (
-                NPM_PROJECT_ROOT / NPM_RELATIVE_SMOKE_ROOT / ".proofkit" / "changes" / "npm-release-gate" / "proposal.md"
+                NPM_PROJECT_ROOT / NPM_RELATIVE_SMOKE_ROOT / ".runproof" / "changes" / "npm-release-gate" / "proposal.md"
             )
             if not relative_npm_proposal.is_file():
                 raise AssertionError(f"npm wrapper did not create workflow change from caller cwd: {relative_npm_proposal}")
@@ -252,7 +249,7 @@ def release_check(*, keep_temp: bool) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Run ProofKit release readiness checks.")
+    parser = argparse.ArgumentParser(description="Run RunProof release readiness checks.")
     parser.add_argument(
         "--keep-temp",
         action="store_true",
