@@ -93,21 +93,21 @@ _PHASE_ICON: dict[str, str] = {
     "blocked":        "✗",
 }
 
-SDD_DIR = ".proofkit"
+SDD_DIR = ".runproof"
 
 REQUIRED_DIRECTORIES = [
-    ".proofkit",
-    ".proofkit/adapters",
-    ".proofkit/agents",
-    ".proofkit/memory",
-    ".proofkit/profiles",
-    ".proofkit/schemas",
-    ".proofkit/skills",
-    ".proofkit/specs",
-    ".proofkit/changes",
-    ".proofkit/archive",
-    ".proofkit/evidence",
-    ".proofkit/extensions",
+    ".runproof",
+    ".runproof/adapters",
+    ".runproof/agents",
+    ".runproof/memory",
+    ".runproof/profiles",
+    ".runproof/schemas",
+    ".runproof/skills",
+    ".runproof/specs",
+    ".runproof/changes",
+    ".runproof/archive",
+    ".runproof/evidence",
+    ".runproof/extensions",
 ]
 
 REQUIRED_ADAPTERS = [
@@ -198,16 +198,17 @@ FOUNDATION_COPY_FILES = [
 MEMORY_COPY_FILES = [
     "project.md",
     "decisions.md",
+    "constitution.md",
 ]
 
-MEMORY_KEYS = ["project", "decisions"]
+MEMORY_KEYS = ["project", "decisions", "constitution"]
 
 FOUNDATION_DOC_FILES = [
     "adapter-contract-v0.1.md",
     "adapter-authoring-v0.1.md",
     "adapters-v0.1.md",
     "production-readiness-v0.1.md",
-    "proofkit-protocol-v0.1.md",
+    "runproof-protocol-v0.1.md",
     "sdd-validator-v0.1.md",
 ]
 
@@ -362,8 +363,8 @@ PHASE_NEXT_ACTIONS: dict[WorkflowPhase, str] = {
     WorkflowPhase.VERIFY:         "Record passing evidence in verification.md and set status to verified.",
     WorkflowPhase.CRITIQUE:       "Resolve critique.md and set status to ready or verified.",
     WorkflowPhase.ARCHIVE_RECORD: "Complete archive.md and set status to ready.",
-    WorkflowPhase.SYNC_SPECS:     "Run `proofkit sync-specs <change_id> --root <repo>`.",
-    WorkflowPhase.ARCHIVE:        "Run `proofkit archive <change_id> --root <repo>`.",
+    WorkflowPhase.SYNC_SPECS:     "Run `runproof sync-specs <change_id> --root <repo>`.",
+    WorkflowPhase.ARCHIVE:        "Run `runproof archive <change_id> --root <repo>`.",
     WorkflowPhase.ARCHIVED:       "Review archived change evidence.",
     WorkflowPhase.BLOCKED:        "Resolve blocking findings before continuing.",
 }

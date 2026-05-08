@@ -11,8 +11,8 @@ import unittest
 from importlib.resources import files
 from pathlib import Path
 
-import proofkit
-from proofkit import cli as sdd
+import runproof
+from runproof import cli as sdd
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -244,6 +244,10 @@ class TestCore(unittest.TestCase):
         text = "---\nschema: sdd.artifact.v1\n---\n\n# Body\n"
 
         self.assertEqual(sdd.strip_frontmatter_text(text), "# Body\n")
+
+    def test_runproof_brand_constants(self) -> None:
+        self.assertEqual(sdd.SDD_DIR, ".runproof")
+        self.assertIn("constitution", sdd.MEMORY_KEYS)
 
 
 if __name__ == "__main__":
