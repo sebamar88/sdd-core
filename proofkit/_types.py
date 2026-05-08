@@ -8,7 +8,7 @@ from enum import Enum
 from pathlib import Path
 from typing import ClassVar, Iterable, Protocol
 
-VERSION = "0.26.0"
+VERSION = "0.27.0"
 
 
 # ── Terminal color helpers ───────────────────────────────────────────────────

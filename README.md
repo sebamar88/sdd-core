@@ -333,7 +333,7 @@ proofkit --trace transition my-change specify --root .
 
 ## Current Status
 
-Current release: `v0.26.0`
+Current release: `v0.27.0`
 
 Production-ready:
 

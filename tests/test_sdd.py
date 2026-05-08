@@ -58,7 +58,7 @@ class SddToolingTests(unittest.TestCase):
             self.record_transition(root, change_id, phase)
 
     def test_version_is_defined(self) -> None:
-        self.assertEqual(sdd.VERSION, "0.26.0")
+        self.assertEqual(sdd.VERSION, "0.27.0")
 
     def test_distribution_versions_match(self) -> None:
         pyproject = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))

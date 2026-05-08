@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.27.0 - 2026-05-07
+
+**UX: didactic CLI help on every command error**
+
+- All CLI commands now print the full sub-command help (usage, arguments, and a concrete example) to stderr **before** the argparse error message when invoked incorrectly.
+- `_HelpfulParser` subclass of `argparse.ArgumentParser` added to `cli.py`; overrides `error()` to print help first. All subparsers use `parser_class=_HelpfulParser`.
+- `epilog=` with copy-paste examples added to every subcommand: `new`, `run`, `ready`, `transition`, `verify`, `auto`, `guard`, `init`, `check`, `archive`, `sync-specs`, `log`, `phase`, `evidence`, `pr-check`, `install-hooks`, `install-commands`, `ci-template`, `extension`, `memory`, and all extension/memory sub-actions.
+- `formatter_class=RawDescriptionHelpFormatter` set by default so multi-line epilogs render correctly.
+- All 261 tests pass.
+
 ## 0.26.0 - 2026-05-08
 
 **Feature: `proofkit ready` — interactive UX command**
