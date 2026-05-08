@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.28.0 - 2026-05-08
+
+**Rebranding: ProofKit → RunProof + slash commands nativos + UX de agente**
+
+### Breaking changes
+
+- CLI renamed: `proofkit` → `runproof`
+- PyPI package renamed: `proofkit-cli` → `runproof-cli`
+- npm package renamed: `proofkit-cli` → `runproof-cli` (binary: `runproof`)
+- State directory renamed: `.proofkit/` → `.runproof/`
+- Python package renamed: `proofkit` → `runproof`
+- Node wrapper env var renamed: `PROOFKIT_PYTHON` → `RUNPROOF_PYTHON`
+
+### New features
+
+- **`runproof next`** — single command that auto-advances the active change through all executable phases and drafts missing artifacts for human-work phases. Makes `/runproof-next` slash command trivially simple.
+- **`runproof status --json`** — machine-readable JSON output with `change_id`, `phase`, `next_action`, `missing_artifacts`, and `can_auto_advance` fields. Eliminates brittle text parsing in agent templates.
+- **Auto-detection of `change_id`** — all commands (`auto`, `verify`, `log`, `evidence`, `pr-check`, `next`) infer the active change when exactly one exists. Explicit `change_id` remains optional.
+- **`constitution` memory key** — new memory key `constitution` added to `MEMORY_KEYS`. `runproof init` writes `.runproof/memory/constitution.md` from a structured template. `runproof memory show --key constitution` works.
+- **Native slash command templates for Copilot** — `runproof install-commands --integration copilot` now installs `.github/prompts/runproof-*.prompt.md` files with correct `mode: agent` frontmatter (previously used wrong path `.github/copilot-prompts/sdd/` and wrong format).
+- **New slash commands** — `/runproof-next`, `/runproof-new`, `/runproof-status`, `/runproof-verify`, `/runproof-constitution` for both Claude Code and Copilot. Templates act as autonomous agents, not instruction lists.
+- **Fixed integration paths** — `_INTEGRATION_COMMAND_DIRS` updated for all integrations: Copilot → `.github/prompts/`, Cursor → `.cursor/rules/`, Gemini → `.gemini/commands/`, etc.
+
+### Internal
+
+- Template directory renamed: `templates/sdd/` → `templates/runproof/`
+- Schema strings: `sdd.*` → `runproof.*`
+- Git hooks and CI templates updated: `runproof guard`, `runproof-cli`
+- `resolve_active_change_id()` exported as public API
+- `print_status_json()` exported as public API
+- 269 tests passing
+
 ## 0.27.0 - 2026-05-07
 
 **UX: didactic CLI help on every command error**
